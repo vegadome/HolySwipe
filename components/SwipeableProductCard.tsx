@@ -104,29 +104,31 @@ export const SwipeableProductCard: React.FC<SwipeableProductCardProps> = ({
     };
   });
 
-  const nahOpacity = useAnimatedStyle(() => {
-    return {
-      opacity: interpolate(
-        translateX.value,
-        [0, -SWIPE_THRESHOLD],
-        [0, 1],
-        Extrapolation.CLAMP
-      ),
-      transform: [{ scale: interpolate(translateX.value, [0, -SWIPE_THRESHOLD], [0.8, 1.2], Extrapolation.CLAMP) }]
-    };
-  });
+  const nahOpacity = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      translateX.value,
+      [0, -SWIPE_THRESHOLD * 0.7],
+      [0, 1],
+      Extrapolation.CLAMP
+    ),
+    transform: [
+      { rotate: '15deg' },
+      { scale: interpolate(translateX.value, [0, -SWIPE_THRESHOLD], [0.9, 1.1], Extrapolation.CLAMP) }
+    ],
+  }));
 
-  const yeahOpacity = useAnimatedStyle(() => {
-    return {
-      opacity: interpolate(
-        translateX.value,
-        [0, SWIPE_THRESHOLD], // De 0 à 30% de l'écran
-        [0, 1],               // L'opacité passe de 0 à 1
-        Extrapolation.CLAMP
-      ),
-      transform: [{ scale: interpolate(translateX.value, [0, SWIPE_THRESHOLD], [0.8, 1.2], Extrapolation.CLAMP) }]
-    };
-  });
+  const yeahOpacity = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      translateX.value,
+      [0, SWIPE_THRESHOLD * 0.7], // Apparaît très vite
+      [0, 1],
+      Extrapolation.CLAMP
+    ),
+    transform: [
+      { rotate: '-15deg' }, 
+      { scale: interpolate(translateX.value, [0, SWIPE_THRESHOLD], [0.9, 1.1], Extrapolation.CLAMP) }
+    ],
+  }));
 
   return (
     <View style={styles.containerWrapper}>
@@ -149,13 +151,20 @@ export const SwipeableProductCard: React.FC<SwipeableProductCardProps> = ({
             style={styles.image}
             contentFit="cover"
           />
+
+          {/* Labels "YEAH" et "NAH" à l'intérieur de la carte */}
+          <Animated.View style={[styles.labelContainer, styles.yeahLabelPos, yeahOpacity]}>
+            <Text style={styles.yeahLabelText}>LIKE</Text>
+          </Animated.View>
+
+          <Animated.View style={[styles.labelContainer, styles.nahLabelPos, nahOpacity]}>
+            <Text style={styles.nahLabelText}>NOPE</Text>
+          </Animated.View>
+
           <View style={styles.info}>
             <Text style={styles.name}>{product.name}</Text>
             <Text style={styles.brand}>{product.brand}</Text>
             <Text style={styles.price}>${product.price}</Text>
-            {product.ecoFriendly && (
-              <Text style={styles.eco}>🌱 Eco-friendly</Text>
-            )}
           </View>
           <TouchableOpacity onPress={onViewDetails} style={styles.detailsBtn}>
             <Text style={{ color: '#4a90e2' }}>View Details</Text>
@@ -245,7 +254,37 @@ const styles = StyleSheet.create({
     letterSpacing: -2,
   },
 
-  // ❤️ Cœur
+  labelContainer: {
+    position: 'absolute',
+    top: 40,
+    borderWidth: 4,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    zIndex: 100,
+  },
+  yeahLabelPos: {
+    left: 30,
+    borderColor: '#66dd99',
+  },
+  nahLabelPos: {
+    right: 30,
+    borderColor: '#ff6666',
+  },
+  yeahLabelText: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#66dd99',
+    textTransform: 'uppercase',
+  },
+  nahLabelText: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#ff6666',
+    textTransform: 'uppercase',
+  },
+
+    // ❤️ Cœur
   heartContainer: {
     position: 'absolute',
     top: 100,
@@ -255,4 +294,5 @@ const styles = StyleSheet.create({
     fontSize: 64,
     opacity: 0.9,
   },
+  
 });
