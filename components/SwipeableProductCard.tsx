@@ -153,39 +153,38 @@ export const SwipeableProductCard: React.FC<SwipeableProductCardProps> = ({
 
 const styles = StyleSheet.create({
   containerWrapper: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    alignSelf: 'center',
+    width: SCREEN_WIDTH, // On prend toute la largeur pour centrer facilement
+    height: CARD_HEIGHT + 40, // On laisse de la place pour les débordements de la pile
+    alignItems: 'center', // Centre horizontalement le contenu
+    justifyContent: 'center', // Centre verticalement le contenu
     marginTop: 20,
     position: 'relative',
   },
-  // Styles pour l'effet de pile
   cardPlaceholder: {
     position: 'absolute',
     borderRadius: 40,
     backgroundColor: '#111',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)',
+    // On retire alignSelf: 'center' car le parent a alignItems: 'center'
   },
   cardUnder1: {
-    width: '94%',
-    height: '90%',
-    bottom: -10,
-    alignSelf: 'center',
+    width: CARD_WIDTH * 0.94, // Utilise la constante de largeur pour plus de précision
+    height: CARD_HEIGHT * 0.9,
+    bottom: 10, // Ajustez pour l'effet de pile
     zIndex: -1,
     opacity: 0.6,
   },
   cardUnder2: {
-    width: '88%',
-    height: '80%',
-    bottom: -20,
-    alignSelf: 'center',
+    width: CARD_WIDTH * 0.88,
+    height: CARD_HEIGHT * 0.8,
+    bottom: 0,
     zIndex: -2,
     opacity: 0.3,
   },
   card: {
-    width: '100%',
-    height: '100%',
+    width: CARD_WIDTH, // Utilise explicitement la largeur définie
+    height: CARD_HEIGHT,
     borderRadius: 40,
     backgroundColor: '#1a1a1a',
     overflow: 'hidden',
