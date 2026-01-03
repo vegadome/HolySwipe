@@ -1,32 +1,24 @@
-// components/SwipeableProductCard.tsx
-
+import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import React, { useState } from 'react';
-import {
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import {
-  Gesture,
-  GestureDetector,
-} from 'react-native-gesture-handler';
+import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolation,
   interpolate,
   runOnJS,
-  SlideInDown,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming
+  withTiming,
 } from 'react-native-reanimated';
 import { Product } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 40;
+const CARD_HEIGHT = 600;
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
 
 interface SwipeableProductCardProps {
@@ -35,18 +27,6 @@ interface SwipeableProductCardProps {
   onViewDetails: () => void;
 }
 
-// 💖 Composant cœur animé
-const HeartAnimation = () => {
-  return (
-    <Animated.View
-      entering={SlideInDown.duration(400).springify()}
-      style={styles.heartContainer}
-    >
-      <Text style={styles.heart}>❤️</Text>
-    </Animated.View>
-  );
-};
-
 export const SwipeableProductCard: React.FC<SwipeableProductCardProps> = ({
   product,
   onSwipe,
@@ -54,121 +34,117 @@ export const SwipeableProductCard: React.FC<SwipeableProductCardProps> = ({
 }) => {
   const translateX = useSharedValue(0);
   const rotation = useSharedValue(0);
-  const scale = useSharedValue(1);
-  const [showHeart, setShowHeart] = useState(false);
+  
+  // Correction de l'erreur : useSharedValue pour être accessible sur le UI Thread
+  const hasImpacted = useSharedValue(false);
 
   const panGesture = Gesture.Pan()
-  .onUpdate((event) => {
-    translateX.value = event.translationX;
-    rotation.value = interpolate(
-      event.translationX,
-      [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
-      [-25, 0, 25],
-      Extrapolation.CLAMP
-    );
-  })
-  .onEnd((event) => {
-    const isSwipeRight = event.translationX > SWIPE_THRESHOLD || event.velocityX > 800;
-    const isSwipeLeft = event.translationX < -SWIPE_THRESHOLD || event.velocityX < -800;
-
-    if (isSwipeRight || isSwipeLeft) {
-      const direction = isSwipeRight ? 1 : -1;
-      
-      // 🚀 Animation de sortie ultra rapide et fluide
-      translateX.value = withTiming(
-        direction * (SCREEN_WIDTH + 200), 
-        { duration: 200 }, 
-        (finished) => {
-          if (finished) {
-            runOnJS(onSwipe)(isSwipeRight ? 'right' : 'left');
-            // Optionnel : réinitialiser les valeurs pour la prochaine carte si le composant est réutilisé
-            translateX.value = 0;
-            rotation.value = 0;
-          }
-        }
+    .onUpdate((event) => {
+      translateX.value = event.translationX;
+      rotation.value = interpolate(
+        event.translationX,
+        [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
+        [-15, 0, 15],
+        Extrapolation.CLAMP
       );
-    } else {
-      // ↩️ Retour élastique si abandonné
-      translateX.value = withSpring(0, { damping: 15, stiffness: 150 });
-      rotation.value = withSpring(0);
-    }
-  });
 
-  const cardAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        { translateX: translateX.value },
-        { rotate: `${rotation.value}deg` },
-        { scale: scale.value }, // ✅ Appliquer le scale
-      ],
-    };
-  });
+      // Gestion de la vibration sans erreur de référence
+      const isOverThreshold = Math.abs(event.translationX) > SWIPE_THRESHOLD;
+      
+      if (isOverThreshold && !hasImpacted.value) {
+        runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
+        hasImpacted.value = true;
+      } else if (!isOverThreshold && hasImpacted.value) {
+        hasImpacted.value = false;
+      }
+    })
+    .onEnd((event) => {
+      const isSwipeRight = event.translationX > SWIPE_THRESHOLD || event.velocityX > 800;
+      const isSwipeLeft = event.translationX < -SWIPE_THRESHOLD || event.velocityX < -800;
 
-  const nahOpacity = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      translateX.value,
-      [0, -SWIPE_THRESHOLD * 0.7],
-      [0, 1],
-      Extrapolation.CLAMP
-    ),
+      if (isSwipeRight || isSwipeLeft) {
+        runOnJS(Haptics.notificationAsync)(Haptics.NotificationFeedbackType.Success);
+        
+        const direction = isSwipeRight ? 1 : -1;
+        
+        translateX.value = withTiming(
+          direction * (SCREEN_WIDTH + 150), 
+          { duration: 200 }, 
+          (finished) => {
+            if (finished) {
+              runOnJS(onSwipe)(isSwipeRight ? 'right' : 'left');
+              
+              // 💡 RÉINITIALISATION : On remet la carte au centre invisiblement 
+              // pour que la suivante apparaisse au bon endroit si la Key ne change pas.
+              translateX.value = 0;
+              rotation.value = 0;
+              hasImpacted.value = false;
+            }
+          }
+        );
+      } else {
+        translateX.value = withSpring(0, { damping: 15 });
+        rotation.value = withSpring(0);
+        hasImpacted.value = false;
+      }
+    });
+
+  const cardAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { rotate: '15deg' },
-      { scale: interpolate(translateX.value, [0, -SWIPE_THRESHOLD], [0.9, 1.1], Extrapolation.CLAMP) }
+      { translateX: translateX.value },
+      { rotate: `${rotation.value}deg` },
     ],
   }));
 
   const yeahOpacity = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      translateX.value,
-      [0, SWIPE_THRESHOLD * 0.7], // Apparaît très vite
-      [0, 1],
-      Extrapolation.CLAMP
-    ),
-    transform: [
-      { rotate: '-15deg' }, 
-      { scale: interpolate(translateX.value, [0, SWIPE_THRESHOLD], [0.9, 1.1], Extrapolation.CLAMP) }
-    ],
+    opacity: interpolate(translateX.value, [0, 50], [0, 1], Extrapolation.CLAMP),
+  }));
+
+  const nahOpacity = useAnimatedStyle(() => ({
+    opacity: interpolate(translateX.value, [0, -50], [0, 1], Extrapolation.CLAMP),
   }));
 
   return (
     <View style={styles.containerWrapper}>
-      {/* Overlays "nah" / "yeah" */}
-      <Animated.View style={[styles.overlay, styles.nahOverlay, nahOpacity]}>
-        <Text style={styles.nahText}>nah</Text>
-      </Animated.View>
-      <Animated.View style={[styles.overlay, styles.yeahOverlay, yeahOpacity]}>
-        <Text style={styles.yeahText}>yeah</Text>
-      </Animated.View>
+      {/* Effet de pile (cartes en dessous) */}
+      <View style={[styles.cardPlaceholder, styles.cardUnder1]} />
+      <View style={[styles.cardPlaceholder, styles.cardUnder2]} />
 
-      {/* ❤️ Cœur animé (uniquement pour le like) */}
-      {showHeart && <HeartAnimation />}
-
-      {/* Carte principale */}
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.card, cardAnimatedStyle]}>
-          <Image
-            source={{ uri: product.image }}
-            style={styles.image}
-            contentFit="cover"
+          <Image source={{ uri: product.image }} style={styles.image} contentFit="cover" />
+
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.95)']}
+            style={styles.gradient}
           />
 
-          {/* Labels "YEAH" et "NAH" à l'intérieur de la carte */}
-          <Animated.View style={[styles.labelContainer, styles.yeahLabelPos, yeahOpacity]}>
-            <Text style={styles.yeahLabelText}>LIKE</Text>
+          {/* Labels LIKE/NOPE */}
+          <Animated.View style={[styles.statusLabel, styles.likeLabel, yeahOpacity]}>
+            <Text style={styles.statusText}>LIKE</Text>
+          </Animated.View>
+          <Animated.View style={[styles.statusLabel, styles.nopeLabel, nahOpacity]}>
+            <Text style={styles.statusText}>NOPE</Text>
           </Animated.View>
 
-          <Animated.View style={[styles.labelContainer, styles.nahLabelPos, nahOpacity]}>
-            <Text style={styles.nahLabelText}>NOPE</Text>
-          </Animated.View>
+          <View style={styles.overlayContent}>
+            <BlurView intensity={20} tint="light" style={styles.glassBadge}>
+              <Text style={styles.brandText}>{product.brand?.toUpperCase() || 'BRAND'}</Text>
+            </BlurView>
 
-          <View style={styles.info}>
-            <Text style={styles.name}>{product.name}</Text>
-            <Text style={styles.brand}>{product.brand}</Text>
-            <Text style={styles.price}>${product.price}</Text>
+            <View style={styles.infoContainer}>
+              <Text style={styles.nameText}>{product.name.toUpperCase()}</Text>
+              
+              <View style={styles.bottomRow}>
+                <Text style={styles.priceText}>{product.price}€</Text>
+                <TouchableOpacity onPress={onViewDetails} style={styles.detailsBtn}>
+                  <BlurView intensity={40} tint="dark" style={styles.btnBlur}>
+                    <Text style={styles.btnText}>DETAILS</Text>
+                  </BlurView>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-          <TouchableOpacity onPress={onViewDetails} style={styles.detailsBtn}>
-            <Text style={{ color: '#4a90e2' }}>View Details</Text>
-          </TouchableOpacity>
         </Animated.View>
       </GestureDetector>
     </View>
@@ -178,121 +154,81 @@ export const SwipeableProductCard: React.FC<SwipeableProductCardProps> = ({
 const styles = StyleSheet.create({
   containerWrapper: {
     width: CARD_WIDTH,
-    height: 550, // un peu plus grand pour le cœur
+    height: CARD_HEIGHT,
     alignSelf: 'center',
-    justifyContent: 'center',
+    marginTop: 20,
+    position: 'relative',
+  },
+  // Styles pour l'effet de pile
+  cardPlaceholder: {
+    position: 'absolute',
+    borderRadius: 40,
+    backgroundColor: '#111',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  cardUnder1: {
+    width: '94%',
+    height: '90%',
+    bottom: -10,
+    alignSelf: 'center',
+    zIndex: -1,
+    opacity: 0.6,
+  },
+  cardUnder2: {
+    width: '88%',
+    height: '80%',
+    bottom: -20,
+    alignSelf: 'center',
+    zIndex: -2,
+    opacity: 0.3,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    width: '100%',
+    height: '100%',
+    borderRadius: 40,
+    backgroundColor: '#1a1a1a',
     overflow: 'hidden',
-    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    width: '100%',
-    height: '100%',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+  },
+  image: { ...StyleSheet.absoluteFillObject },
+  gradient: {
     position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '65%',
   },
-  image: {
-    width: '100%',
-    height: 400,
+  overlayContent: {
+    flex: 1,
+    padding: 25,
+    justifyContent: 'space-between',
   },
-  info: {
-    padding: 15,
+  glassBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
-  name: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  brand: {
-    color: '#666',
-    marginVertical: 4,
-  },
-  price: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  eco: {
-    color: 'green',
-    marginTop: 6,
-  },
-  detailsBtn: {
-    padding: 10,
-    alignItems: 'center',
-  },
-  overlay: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 12,
-  },
-  nahOverlay: {
-    backgroundColor: 'rgba(255, 100, 100, 0.15)',
-  },
-  yeahOverlay: {
-    backgroundColor: 'rgba(100, 255, 150, 0.15)',
-  },
-  nahText: {
-    fontSize: 56,
-    fontWeight: '800',
-    color: '#ff6666',
-    textShadowColor: 'rgba(0,0,0,0.1)',
-    textShadowRadius: 4,
-    letterSpacing: -2,
-  },
-  yeahText: {
-    fontSize: 56,
-    fontWeight: '800',
-    color: '#66dd99',
-    textShadowColor: 'rgba(0,0,0,0.1)',
-    textShadowRadius: 4,
-    letterSpacing: -2,
-  },
-
-  labelContainer: {
-    position: 'absolute',
-    top: 40,
-    borderWidth: 4,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    zIndex: 100,
-  },
-  yeahLabelPos: {
-    left: 30,
-    borderColor: '#66dd99',
-  },
-  nahLabelPos: {
-    right: 30,
-    borderColor: '#ff6666',
-  },
-  yeahLabelText: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#66dd99',
-    textTransform: 'uppercase',
-  },
-  nahLabelText: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#ff6666',
-    textTransform: 'uppercase',
-  },
-
-    // ❤️ Cœur
-  heartContainer: {
-    position: 'absolute',
-    top: 100,
-    zIndex: 10,
-  },
-  heart: {
-    fontSize: 64,
-    opacity: 0.9,
-  },
-  
+  brandText: { color: '#FFF', fontSize: 10, fontWeight: 'bold', letterSpacing: 2 },
+  infoContainer: { marginBottom: 10 },
+  nameText: { color: '#FFF', fontSize: 34, fontWeight: '900', lineHeight: 36, letterSpacing: -1, marginBottom: 12 },
+  bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  priceText: { color: '#E2F163', fontSize: 26, fontWeight: 'bold' },
+  detailsBtn: { borderRadius: 20, overflow: 'hidden' },
+  btnBlur: { paddingHorizontal: 20, paddingVertical: 10 },
+  btnText: { color: '#FFF', fontWeight: 'bold', fontSize: 12 },
+  statusLabel: { position: 'absolute', top: 120, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 15, borderWidth: 4, zIndex: 10 },
+  likeLabel: { left: 30, borderColor: '#4CAF50', transform: [{ rotate: '-15deg' }] },
+  nopeLabel: { right: 30, borderColor: '#FF4500', transform: [{ rotate: '15deg' }] },
+  statusText: { fontSize: 32, fontWeight: '900', color: '#FFF' },
 });

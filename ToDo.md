@@ -1,1 +1,2 @@
 - splash screen animé 
+- animations de transition quand l'utilisateur clique sur une de ces cartes "Live" 
