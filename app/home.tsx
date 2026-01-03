@@ -2,14 +2,34 @@ import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { mockSales } from '../data/mockSales';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const pulseAnim = useRef(new Animated.Value(1)).current;
   const liveSales = mockSales.filter(s => s.isLive);
   const popularSales = mockSales.filter(s => !s.isLive).slice(0, 5);
+
+
+  useEffect(() => {
+    // Configuration de l'animation en boucle (infini)
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1, // Grandit de 10%
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1, // Revient à la taille normale
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -72,7 +92,14 @@ export default function HomeScreen() {
                 <View>
                   <Text style={styles.liveTitle}>{sale.title.toUpperCase()}</Text>
                   <View style={styles.statsRow}>
-                    <View style={styles.liveBadge}><Text style={styles.liveBadgeText}>LIVE</Text></View>
+                    <Animated.View 
+                      style={[
+                        styles.liveBadge, 
+                        { transform: [{ scale: pulseAnim }] } // Application de l'effet d'échelle
+                      ]}
+                    >
+                      <Text style={styles.liveBadgeText}>LIVE</Text>
+                    </Animated.View>
                     <Text style={styles.viewerText}>• {sale.viewers}k</Text>
                   </View>
                 </View>
@@ -150,7 +177,18 @@ const styles = StyleSheet.create({
   
   liveTitle: { color: '#FFF', fontSize: 30, fontWeight: '900', letterSpacing: -1, marginBottom: 8 },
   statsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  liveBadge: { backgroundColor: '#FF4500', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+  liveBadge: {
+    backgroundColor: '#FF4500', 
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    // Ajout d'une légère ombre pour le faire ressortir pendant l'animation
+    shadowColor: '#FF4500',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+    elevation: 5, 
+  },
   liveBadgeText: { color: '#FFF', fontSize: 11, fontWeight: 'bold' },
   viewerText: { color: '#FFF', fontSize: 13, fontWeight: '600' },
 
@@ -172,5 +210,6 @@ const styles = StyleSheet.create({
   },
   navIcon: { color: 'white', fontSize: 20 },
   navMainIcon: { width: 54, height: 54, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 27, justifyContent: 'center', alignItems: 'center' },
-  navAvatar: { width: 38, height: 38, borderRadius: 19 }
+  navAvatar: { width: 38, height: 38, borderRadius: 19 },
+  
 });
