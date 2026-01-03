@@ -2,9 +2,17 @@
 
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 
+const OnboardingScreen = () => {
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 // 🔹 Définir le type des préférences utilisateur
 interface UserPreferences {
   styles: string[];
@@ -36,8 +44,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const OnboardingScreen = () => {
-  const [step, setStep] = useState<number>(0);
+const [step, setStep] = useState<number>(0);
 
   const [prefs, setPrefs] = useState<UserPreferences>({
     styles: [],
@@ -87,22 +94,21 @@ const OnboardingScreen = () => {
       }
     });
   };
-
+  
   const handleNext = async () => {
     if (step === questions.length - 1) {
-      try {
-        await SecureStore.setItemAsync('user_preferences', JSON.stringify(prefs));
-        await SecureStore.setItemAsync('onboarding_complete', 'true');
-        router.replace('/');
-      } catch (error) {
-        console.error('Failed to save onboarding data', error);
-        // Optionnel : afficher une alerte à l’utilisateur
+      await SecureStore.setItemAsync('user_preferences', JSON.stringify(prefs));
+      await SecureStore.setItemAsync('onboarding_complete', 'true');
+      
+      if (isMounted.current) {
+        router.replace('/home'); // ✅ Sécurisé
       }
     } else {
-      setStep((prev) => prev + 1);
+      if (isMounted.current) {
+        setStep(prev => prev + 1);
+      }
     }
   };
-
   const currentQ = questions[step];
   const selected = prefs[currentQ.key];
 
