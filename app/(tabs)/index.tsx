@@ -1,98 +1,107 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+// app/(tabs)/index.tsx
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import { useEffect, useState } from 'react';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
-export default function HomeScreen() {
+import { SwipeableProductCard } from '../../components/SwipeableProductCard'; // ✅ Nouveau composant
+import { mockProducts } from '../../data/mockProducts';
+import { Product } from '../../types'; // ✅ Déplacé vers types.ts
+import { getPersonalizedFeed } from '../../utils/personalization';
+
+const SwipeFeed = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [likedIds, setLikedIds] = useState<string[]>([]);
+  const router = useRouter();
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const prefsStr = await SecureStore.getItemAsync('user_preferences');
+        const prefs = prefsStr
+          ? JSON.parse(prefsStr)
+          : { styles: [], colors: [], brands: [], size: '' };
+
+        const likedStr = await SecureStore.getItemAsync('liked_ids');
+        const liked: string[] = likedStr ? JSON.parse(likedStr) : [];
+
+        setLikedIds(liked);
+        const feed = getPersonalizedFeed(prefs, liked);
+        setProducts(feed.length > 0 ? feed : mockProducts);
+      } catch (error) {
+        console.error('Failed to load onboarding or liked data', error);
+        setProducts(mockProducts);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const handleSwipe = async (direction: 'left' | 'right') => {
+    const currentProduct = products[currentIndex];
+    if (!currentProduct) return;
+
+    if (direction === 'right') {
+      const newLiked = [...likedIds, currentProduct.id];
+      setLikedIds(newLiked);
+      try {
+        await SecureStore.setItemAsync('liked_ids', JSON.stringify(newLiked));
+      } catch (err) {
+        console.warn('Failed to save liked item', err);
+      }
+    }
+
+    if (currentIndex < products.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+    } else {
+      Alert.alert('No more items', 'Check back tomorrow for new picks!');
+    }
+  };
+
+  const currentProduct = products[currentIndex];
+  if (!currentProduct) {
+    return (
+      <View style={styles.center}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      <SwipeableProductCard
+        product={currentProduct}
+        onSwipe={handleSwipe}
+        onViewDetails={() => router.push(`/product/${currentProduct.id}`)}
+      />
+      <Text style={styles.counter}>
+        {currentIndex + 1} / {products.length}
+      </Text>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
+    backgroundColor: '#f9f9f9',
+    justifyContent: 'center', // Centre verticalement la carte
     alignItems: 'center',
-    gap: 8,
+    paddingVertical: 20,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  counter: {
+    textAlign: 'center',
+    marginTop: 30,
+    color: '#888',
+    fontSize: 16,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
+
+export default SwipeFeed;
