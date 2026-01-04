@@ -1,9 +1,12 @@
+// app/onboarding.tsx
+
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useRef, useState } from 'react';
-import { Dimensions, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { supabase } from '../lib/supabase'; // ✅ Importe Supabase
 
 const { width } = Dimensions.get('window');
 
@@ -31,6 +34,7 @@ const OnboardingScreen = () => {
     brands: [],
     size: '',
   });
+  const [loading, setLoading] = useState(false); // ✅ Pour le bouton
 
   useEffect(() => {
     return () => { isMounted.current = false; };
@@ -73,11 +77,47 @@ const OnboardingScreen = () => {
     });
   };
 
+  // ✅ Nouvelle fonction : sauvegarde dans Supabase + SecureStore (fallback)
+  const saveOnboardingData = async (preferences: UserPreferences) => {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      // ✅ Utilisateur connecté → sauvegarde dans Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          preferences,
+          onboarding_complete: true,
+        });
+
+      if (error) {
+        console.error('Supabase save error:', error);
+        Alert.alert('Error', 'Failed to save preferences. Please try again.');
+        return false;
+      }
+    } else {
+      // ⚠️ Utilisateur anonyme → fallback sur SecureStore
+      await SecureStore.setItemAsync('user_preferences', JSON.stringify(preferences));
+      await SecureStore.setItemAsync('onboarding_complete', 'true');
+    }
+
+    return true;
+  };
+
   const handleNext = async () => {
     if (step === questions.length - 1) {
-      await SecureStore.setItemAsync('user_preferences', JSON.stringify(prefs));
-      await SecureStore.setItemAsync('onboarding_complete', 'true');
-      if (isMounted.current) router.replace('/home');
+      setLoading(true);
+
+      const success = await saveOnboardingData(prefs);
+      if (!success) {
+        setLoading(false);
+        return;
+      }
+
+      if (isMounted.current) {
+        router.replace('/home');
+      }
     } else {
       if (isMounted.current) setStep(prev => prev + 1);
     }
@@ -127,9 +167,13 @@ const OnboardingScreen = () => {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity onPress={handleNext} style={styles.nextBtn}>
+        <TouchableOpacity 
+          onPress={handleNext} 
+          disabled={loading}
+          style={[styles.nextBtn, loading && styles.nextBtnDisabled]}
+        >
           <Text style={styles.nextBtnText}>
-            {step === questions.length - 1 ? 'COMMENCER' : 'SUIVANT'}
+            {loading ? 'SAUVEGARDE...' : (step === questions.length - 1 ? 'COMMENCER' : 'SUIVANT')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -169,6 +213,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 5,
+  },
+  nextBtnDisabled: {
+    opacity: 0.7,
   },
   nextBtnText: { color: '#000', fontWeight: '900', fontSize: 16, letterSpacing: 1 },
 });
