@@ -1,190 +1,198 @@
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { supabase } from '../lib/supabase';
+import React from 'react';
+import { Alert, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export default function AuthScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+const { width } = Dimensions.get('window');
+
+const AuthLanding = () => {
   const router = useRouter();
 
-  const handleSignIn = async () => {
-    if (!email || !password) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
-      return;
-    }
-
-    setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: 'HolySwipe://login' },
-      });
-
-      if (signUpError) {
-        Alert.alert('Erreur', signUpError.message);
-      } else {
-        Alert.alert('Vérifie tes emails', 'Un lien de confirmation a été envoyé.');
-      }
-    } else {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('onboarding_complete')
-        .eq('id', data.user.id)
-        .single();
-
-      router.replace(profile?.onboarding_complete ? '/home' : '/onboarding');
-    }
-    setLoading(false);
-  };
-
-  const signInAnonymously = async () => {
-    setLoading(true);
-    const { error } = await supabase.auth.signInAnonymously();
-    if (error) {
-      Alert.alert('Erreur', error.message);
-    } else {
-      router.replace('/onboarding');
-    }
-    setLoading(false);
-  };
-
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-      style={styles.container}
-    >
-      <LinearGradient colors={['#1a1a1a', '#000']} style={StyleSheet.absoluteFill} />
+    <View style={styles.container}>
+      {/* Fond avec dégradé et formes floues pour accentuer le glassmorphism */}
+      <LinearGradient colors={['#0f0f0f', '#000']} style={StyleSheet.absoluteFill} />
       
-      {/* Cercle lumineux diffus en arrière-plan */}
-      <View style={styles.glow} />
+      {/* Orbe décoratif en arrière-plan (Optionnel pour le look moderne) */}
+      <View style={styles.decorativeOrbe} />
 
-      <View style={styles.inner}>
-        <View style={styles.header}>
-          <Text style={styles.title}>HOLY<Text style={{ color: '#E2F163' }}>SWIPE</Text></Text>
-          <Text style={styles.subtitle}>Ta dose quotidienne de style.</Text>
+      <View style={styles.content}>
+        {/* Remplacement du Logo Image par du Texte Stylisé */}
+        <View style={styles.logoContainer}>
+          <Text style={styles.logoTextMain}>HOLY</Text>
+          <Text style={styles.logoTextSub}>SWIPE</Text>
         </View>
 
-        <View style={styles.form}>
-          <BlurView intensity={20} tint="light" style={styles.inputWrapper}>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#666"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </BlurView>
-
-          <BlurView intensity={20} tint="light" style={styles.inputWrapper}>
-            <TextInput
-              style={styles.input}
-              placeholder="Mot de passe"
-              placeholderTextColor="#666"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-          </BlurView>
-
+        <BlurView intensity={25} tint="light" style={styles.glassCard}>
+          <Text style={styles.title}>Votre feed quotidien de mode.</Text>
+          
           <TouchableOpacity
-            style={[styles.button, loading && styles.disabled]}
-            onPress={handleSignIn}
-            disabled={loading}
+            style={styles.primaryButton}
+            onPress={() => router.push('/sign-in')}
           >
-            {loading ? (
-              <ActivityIndicator color="#000" />
-            ) : (
-              <Text style={styles.buttonText}>CONTINUER</Text>
-            )}
+            <Text style={styles.primaryButtonText}>SE CONNECTER</Text>
+          </TouchableOpacity>
+
+          <View style={styles.separatorContainer}>
+            <View style={styles.line} />
+            <Text style={styles.orText}>OU</Text>
+            <View style={styles.line} />
+          </View>
+
+          {/* Boutons Sociaux Style Glass */}
+          <TouchableOpacity
+            style={styles.socialButton}
+            onPress={() => Alert.alert('Apple', 'Indisponible dans la démo')}
+          >
+            <BlurView intensity={20} tint="light" style={styles.socialBlur}>
+              <Text style={styles.socialButtonText}>Continuer avec Apple</Text>
+            </BlurView>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.anonButton}
-            onPress={signInAnonymously}
-            disabled={loading}
+            style={styles.socialButton}
+            onPress={() => Alert.alert('Google', 'Indisponible dans la démo')}
           >
-            <Text style={styles.anonButtonText}>Continuer en tant qu'invité</Text>
+            <BlurView intensity={20} tint="light" style={styles.socialBlur}>
+              <Text style={styles.socialButtonText}>Continuer avec Google</Text>
+            </BlurView>
           </TouchableOpacity>
-        </View>
+
+          <TouchableOpacity 
+            style={styles.footerLink}
+            onPress={() => router.push('/sign-up')}
+          >
+            <Text style={styles.footerText}>
+              Nouveau ici ? <Text style={styles.linkHighlight}>Créer un compte</Text>
+            </Text>
+          </TouchableOpacity>
+        </BlurView>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  glow: {
-    position: 'absolute',
-    top: -100,
-    right: -100,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: '#E2F163',
-    opacity: 0.15,
-    filter: 'blur(80px)', // Note: fonctionne sur iOS, simulation via shadow sur Android si besoin
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
   },
-  inner: { flex: 1, padding: 30, justifyContent: 'center' },
-  header: { marginBottom: 50 },
-  title: {
-    fontSize: 42,
+  decorativeOrbe: {
+    position: 'absolute',
+    top: '15%',
+    right: '-10%',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: '#E2F163',
+    opacity: 0.1, // Très subtil
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 25,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 50,
+  },
+  logoTextMain: {
+    fontSize: 48,
     fontWeight: '900',
     color: '#FFF',
-    letterSpacing: -2,
-    textAlign: 'center',
+    letterSpacing: 8,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#888',
+  logoTextSub: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#E2F163',
+    letterSpacing: 10,
+    marginTop: -5,
+    marginLeft: 5,
+  },
+  glassCard: {
+    width: '100%',
+    padding: 30,
+    borderRadius: 35,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 18,
+    color: '#CCC',
+    marginBottom: 35,
     textAlign: 'center',
-    marginTop: 10,
     fontWeight: '500',
+    letterSpacing: 0.5,
   },
-  form: { gap: 15 },
-  inputWrapper: {
-    borderRadius: 15,
+  primaryButton: {
+    backgroundColor: '#E2F163',
+    width: '100%',
+    paddingVertical: 18,
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: '#E2F163',
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 5,
+  },
+  primaryButtonText: {
+    color: '#000',
+    fontWeight: '900',
+    fontSize: 14,
+    letterSpacing: 1.5,
+  },
+  separatorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 25,
+    width: '100%',
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  orText: {
+    color: '#666',
+    marginHorizontal: 15,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  socialButton: {
+    width: '100%',
+    height: 55,
+    marginBottom: 12,
+    borderRadius: 18,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
-  input: {
-    padding: 18,
+  socialBlur: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  socialButtonText: {
     color: '#FFF',
-    fontSize: 16,
-  },
-  button: {
-    backgroundColor: '#E2F163',
-    padding: 20,
-    borderRadius: 15,
-    alignItems: 'center',
-    marginTop: 10,
-    shadowColor: '#E2F163',
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-  },
-  buttonText: {
-    color: '#000',
-    fontWeight: '900',
-    fontSize: 14,
-    letterSpacing: 1,
-  },
-  anonButton: {
-    padding: 15,
-    alignItems: 'center',
-  },
-  anonButtonText: {
-    color: '#666',
     fontSize: 14,
     fontWeight: '600',
   },
-  disabled: { opacity: 0.6 },
+  footerLink: {
+    marginTop: 25,
+  },
+  footerText: {
+    color: '#888',
+    fontSize: 13,
+  },
+  linkHighlight: {
+    color: '#E2F163',
+    fontWeight: 'bold',
+  },
 });
+
+export default AuthLanding;

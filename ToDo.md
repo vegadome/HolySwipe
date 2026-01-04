@@ -102,6 +102,10 @@ Tu veux que je t’aide à :
 - Désactiver la vérification email pour le dev ?
 - Ajouter Google Sign-In ?
 - Stocker les likes en temps réel ?
+- Ajouter la gestion des erreurs réseau
+- Intégrer Apple Sign-In et Google Sign-In
+- Créer le dashboard admin
+
 
 # SYSTEME SWIPE
 
