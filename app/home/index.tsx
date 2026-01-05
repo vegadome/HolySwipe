@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 import { Animated, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { mockSales } from '../data/mockSales';
+import { mockSales } from '../../data/mockSales';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -39,14 +39,19 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={styles.logoPlaceholder} />
-            <Text style={styles.headerText}>Adverse</Text>
+            <Text style={styles.headerText}>HolySwipe</Text>
           </View>
           {/* CORRECTION ICI : Remplacement de div par View */}
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.iconButton}>
               <Text style={{fontSize: 20}}>🔔</Text>
             </TouchableOpacity>
-            <Image source={{ uri: 'https://avatar.iran.liara.run/public/60' }} style={styles.topAvatar} />
+             <TouchableOpacity onPress={() => router.push('/profile')}>
+              <Image 
+                source={{ uri: 'https://avatar.iran.liara.run/public/60' }} 
+                style={styles.topAvatar} 
+              />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -129,7 +134,6 @@ export default function HomeScreen() {
           <View style={styles.navMainIcon}><Text style={styles.navIcon}>✨</Text></View>
           <TouchableOpacity><Text style={styles.navIcon}>🔍</Text></TouchableOpacity>
           <TouchableOpacity><Text style={styles.navIcon}>🔔</Text></TouchableOpacity>
-          <Image source={{ uri: 'https://avatar.iran.liara.run/public/60' }} style={styles.navAvatar} />
         </BlurView>
       </View>
     </SafeAreaView>

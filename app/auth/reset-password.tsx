@@ -13,38 +13,40 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
-const SignUpScreen = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+const ResetPasswordScreen = () => {
+  const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSignUp = async () => {
-    if (!email || !password || !confirmPassword) {
+  const handleSave = async () => {
+    if (!newPassword || !confirmPassword) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs');
       return;
     }
-    if (password !== confirmPassword) {
+
+    if (newPassword !== confirmPassword) {
       Alert.alert('Erreur', 'Les mots de passe ne correspondent pas');
       return;
     }
 
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: 'HolySwipe://login' },
-    });
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
 
     if (error) {
-      Alert.alert('Erreur', error.message);
+      // 🔑 Gère spécifiquement les tokens expirés
+      if (error.message.includes('Invalid recovery token')) {
+        router.replace('/auth/expired-link');
+      } else {
+        Alert.alert('Erreur', error.message);
+      }
     } else {
-      Alert.alert('Succès', 'Vérifiez vos emails pour confirmer votre compte');
-      router.replace('/auth');
+      Alert.alert('Succès', 'Mot de passe mis à jour !');
+      router.replace('/auth/sign-in');
     }
+
     setLoading(false);
   };
 
@@ -55,36 +57,26 @@ const SignUpScreen = () => {
     >
       <LinearGradient colors={['#0f0f0f', '#000']} style={StyleSheet.absoluteFill} />
       
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <Text style={styles.title}>CRÉER UN COMPTE</Text>
-          <Text style={styles.subtitle}>Rejoignez la communauté et accédez aux meilleures ventes.</Text>
+          <Text style={styles.title}>SÉCURITÉ</Text>
+          <Text style={styles.subtitle}>
+            Créez un nouveau mot de passe robuste pour protéger votre compte.
+          </Text>
         </View>
 
         <View style={styles.form}>
           <BlurView intensity={10} tint="light" style={styles.inputContainer}>
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder="Nouveau mot de passe"
               placeholderTextColor="#666"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </BlurView>
-
-          <BlurView intensity={10} tint="light" style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Mot de passe"
-              placeholderTextColor="#666"
-              value={password}
-              onChangeText={setPassword}
+              value={newPassword}
+              onChangeText={setNewPassword}
               secureTextEntry
             />
           </BlurView>
@@ -101,20 +93,20 @@ const SignUpScreen = () => {
           </BlurView>
 
           <TouchableOpacity
-            style={[styles.signUpButton, loading && styles.disabled]}
-            onPress={handleSignUp}
+            style={[styles.saveButton, loading && styles.disabled]}
+            onPress={handleSave}
             disabled={loading}
           >
-            <Text style={styles.signUpButtonText}>
-              {loading ? 'INSCRIPTION...' : "S'INSCRIRE"}
+            <Text style={styles.saveButtonText}>
+              {loading ? 'ENREGISTREMENT...' : 'ENREGISTRER'}
             </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Déjà un compte ? </Text>
-          <TouchableOpacity onPress={() => router.push('/sign-in')}>
-            <Text style={styles.signInLink}>Se connecter</Text>
+          <Text style={styles.footerText}>Retourner à la </Text>
+          <TouchableOpacity onPress={() => router.push('/auth/sign-in')}>
+            <Text style={styles.loginLink}>Connexion</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -148,16 +140,16 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '900',
     color: '#FFF',
-    letterSpacing: -1,
+    letterSpacing: 2,
   },
   subtitle: {
     fontSize: 16,
     color: '#888',
-    marginTop: 10,
-    lineHeight: 22,
+    marginTop: 15,
+    lineHeight: 24,
   },
   form: {
     width: '100%',
@@ -175,7 +167,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
   },
-  signUpButton: {
+  saveButton: {
     backgroundColor: '#E2F163',
     paddingVertical: 20,
     borderRadius: 20,
@@ -186,7 +178,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
   },
-  signUpButtonText: {
+  saveButtonText: {
     color: '#000',
     fontWeight: '900',
     fontSize: 16,
@@ -205,11 +197,11 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 15,
   },
-  signInLink: {
+  loginLink: {
     color: '#FFF',
     fontWeight: 'bold',
     fontSize: 15,
   },
 });
 
-export default SignUpScreen;
+export default ResetPasswordScreen;

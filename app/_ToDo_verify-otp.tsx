@@ -1,3 +1,12 @@
+/*
+SCRIPT PAS ENCORE UTILISER POUR PLUS TARD SI IMPELMENTATION OTP
+Supabase utilise deux flux d’OTP différents :
+
+- signup : signUp() > type: 'signup' > Vérifier l’email après inscription
+- recovery : resetPasswordForToEmail() >  type: 'recovery' > Réinitialiser le mot de passe après "oubli"
+
+ici c'est l'OTP du signup
+*/
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';

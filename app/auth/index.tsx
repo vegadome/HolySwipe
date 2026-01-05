@@ -29,7 +29,7 @@ const AuthLanding = () => {
           
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={() => router.push('/sign-in')}
+            onPress={() => router.push('/auth/sign-in')}
           >
             <Text style={styles.primaryButtonText}>SE CONNECTER</Text>
           </TouchableOpacity>
@@ -61,7 +61,7 @@ const AuthLanding = () => {
 
           <TouchableOpacity 
             style={styles.footerLink}
-            onPress={() => router.push('/sign-up')}
+            onPress={() => router.push('/auth/sign-up')}
           >
             <Text style={styles.footerText}>
               Nouveau ici ? <Text style={styles.linkHighlight}>Créer un compte</Text>

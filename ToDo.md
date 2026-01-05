@@ -107,12 +107,117 @@ Tu veux que je t’aide à :
 - Créer le dashboard admin
 
 
+
 # SYSTEME SWIPE
 
 - Ajoute la suppression des likes (swipe gauche → déclenche DELETE dans Supabase)
 - Synchronise les likes anonymes vers le compte quand l’utilisateur s’inscrit
 - Crée le dashboard admin pour gérer les produits
 
+# SYSTEME DE PROFILE 
+
+-  L’édition du profil (changer l’avatar, les préférences) ?
+- Un mode sombre / clair toggle ?
+- Des badges utilisateur (ex: "VIP", "Eco-Friendly") ?
 
 
 
+# PRODUCTION 
+
+- configurer smtp email dans supabase
+- URL confiiguraiton dans supabase
+
+En production (après build standalone avec EAS) :
+
+Configurez un scheme personnalisé dans app.json (ex. "scheme": "monapp").
+Mettez à jour le Site URL vers monapp:// et ajoutez monapp://** dans les Redirect URLs.
+Utilisez emailRedirectTo dans vos appels Supabase pour spécifier dynamiquement l'URL de redirection.
+
+Si vous n'utilisez que l'authentification par mot de passe (sans magic link ni OAuth), ce champ a moins d'impact, mais il est bon de le configurer correctement dès le début.
+Sauvegardez les modifications avec Save changes. Testez ensuite un signup avec confirmation e-mail pour vérifier que le lien ouvre bien votre app Expo.
+
+--> 🚀 Étape 1 : Configurer SMTP dans Supabase
+
+Va dans ton projet Supabase → Authentication → Settings → SMTP
+⚙️ Remplis ces champs :
+Champ
+	
+Valeur
+Sender email address
+	
+hello@holywipe.com (ou test@holywipe.com) — doit être valide
+Sender name
+	
+HolySwipe
+Host
+	
+app.debugmail.io
+Port number
+	
+9025 (DebugMail utilise 9025, pas 25)
+Username
+	
+da8d21ae-a7d6-44f4-9945-4a1ce5a85d21 (ton UUID DebugMail)
+Password
+	
+6582dba3-1dd2-485d-8814-1f449cb2cfc6 (ton mot de passe DebugMail)
+
+    ✅ Active "Enable custom SMTP"
+    ✅ Laisse "Minimum interval per user" à 60s (pas de spam)
+
+
+---> 🚀 Étape 2 : Configurer les Redirect URLs
+
+Va dans Authentication → URL Configuration
+🔧 Site URL
+
+1
+
+    ✅ C’est l’URL par défaut d’Expo Go sur Android/iOS. Tu peux aussi mettre :
+
+        exp://192.168.x.x:8081 (si tu testes en local)
+        https://your-project.supabase.co (pour prod)
+
+🔧 Redirect URLs
+
+Ajoute cette ligne :
+
+exp://localhost:8081/auth/callback
+
+✅ Supabase redirigera vers cette URL après la vérification d’email ou la réinitialisation du mot de passe.
+
+
+
+--> reconfigurer pour prod app.json : 
+{
+  "expo": {
+    "scheme": "holy",
+    "android": {
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": {
+            "scheme": "https",
+            "host": "holySwipe.supabase.co"
+          }
+        },
+        {
+          "action": "VIEW",
+          "data": {
+            "scheme": "holy"
+          }
+        }
+      ]
+    },
+    "ios": {
+      "associatedDomains": ["applinks:holySwipe.supabase.co"]
+    }
+  }
+}
+
+---> changer en prod : 
+
+const handleDeepLink = async (url: string) => {
+  // A CHANGER EN PROD
+  if (!url.startsWith('exp://')) return;

@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 const SignInScreen = () => {
   const [email, setEmail] = useState('');
@@ -94,7 +94,7 @@ const SignInScreen = () => {
             />
           </BlurView>
 
-          <TouchableOpacity onPress={() => router.push('/forgot-password')}>
+          <TouchableOpacity onPress={() => router.push('/auth/forgot-password')}>
             <Text style={styles.forgotPassword}>Mot de passe oublié ?</Text>
           </TouchableOpacity>
 
@@ -111,7 +111,7 @@ const SignInScreen = () => {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Pas encore de compte ? </Text>
-          <TouchableOpacity onPress={() => router.push('/sign-up')}>
+          <TouchableOpacity onPress={() => router.push('/auth/sign-up')}>
             <Text style={styles.signUpLink}>S'inscrire</Text>
           </TouchableOpacity>
         </View>

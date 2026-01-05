@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 const ForgotPasswordScreen = () => {
   const [email, setEmail] = useState('');
@@ -26,7 +26,9 @@ const ForgotPasswordScreen = () => {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'exp://localhost:8081',
+    });
 
     if (error) {
       Alert.alert('Erreur', error.message);

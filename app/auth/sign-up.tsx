@@ -13,35 +13,41 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
-const ResetPasswordScreen = () => {
-  const [newPassword, setNewPassword] = useState('');
+const SignUpScreen = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSave = async () => {
-    if (!newPassword || !confirmPassword) {
+  const handleSignUp = async () => {
+    if (!email || !password || !confirmPassword) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs');
       return;
     }
-
-    if (newPassword !== confirmPassword) {
+    if (password !== confirmPassword) {
       Alert.alert('Erreur', 'Les mots de passe ne correspondent pas');
       return;
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: 'exp://localhost:8081'},
+    });
 
     if (error) {
       Alert.alert('Erreur', error.message);
     } else {
-      Alert.alert('Succès', 'Mot de passe mis à jour !');
-      router.replace('/auth/sign-in');
+      // ✅ Redirige vers la nouvelle page de confirmation
+      router.replace({
+        pathname: '/auth/check-email',
+        params: { email }
+      });
     }
-
     setLoading(false);
   };
 
@@ -52,26 +58,36 @@ const ResetPasswordScreen = () => {
     >
       <LinearGradient colors={['#0f0f0f', '#000']} style={StyleSheet.absoluteFill} />
       
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <Text style={styles.title}>SÉCURITÉ</Text>
-          <Text style={styles.subtitle}>
-            Créez un nouveau mot de passe robuste pour protéger votre compte.
-          </Text>
+          <Text style={styles.title}>CRÉER UN COMPTE</Text>
+          <Text style={styles.subtitle}>Rejoignez la communauté et accédez aux meilleures ventes.</Text>
         </View>
 
         <View style={styles.form}>
           <BlurView intensity={10} tint="light" style={styles.inputContainer}>
             <TextInput
               style={styles.input}
-              placeholder="Nouveau mot de passe"
+              placeholder="Email"
               placeholderTextColor="#666"
-              value={newPassword}
-              onChangeText={setNewPassword}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          </BlurView>
+
+          <BlurView intensity={10} tint="light" style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Mot de passe"
+              placeholderTextColor="#666"
+              value={password}
+              onChangeText={setPassword}
               secureTextEntry
             />
           </BlurView>
@@ -88,20 +104,20 @@ const ResetPasswordScreen = () => {
           </BlurView>
 
           <TouchableOpacity
-            style={[styles.saveButton, loading && styles.disabled]}
-            onPress={handleSave}
+            style={[styles.signUpButton, loading && styles.disabled]}
+            onPress={handleSignUp}
             disabled={loading}
           >
-            <Text style={styles.saveButtonText}>
-              {loading ? 'ENREGISTREMENT...' : 'ENREGISTRER'}
+            <Text style={styles.signUpButtonText}>
+              {loading ? 'INSCRIPTION...' : "S'INSCRIRE"}
             </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Retourner à la </Text>
+          <Text style={styles.footerText}>Déjà un compte ? </Text>
           <TouchableOpacity onPress={() => router.push('/auth/sign-in')}>
-            <Text style={styles.loginLink}>Connexion</Text>
+            <Text style={styles.signInLink}>Se connecter</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -135,16 +151,16 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '900',
     color: '#FFF',
-    letterSpacing: 2,
+    letterSpacing: -1,
   },
   subtitle: {
     fontSize: 16,
     color: '#888',
-    marginTop: 15,
-    lineHeight: 24,
+    marginTop: 10,
+    lineHeight: 22,
   },
   form: {
     width: '100%',
@@ -162,7 +178,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
   },
-  saveButton: {
+  signUpButton: {
     backgroundColor: '#E2F163',
     paddingVertical: 20,
     borderRadius: 20,
@@ -173,7 +189,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
   },
-  saveButtonText: {
+  signUpButtonText: {
     color: '#000',
     fontWeight: '900',
     fontSize: 16,
@@ -192,11 +208,11 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 15,
   },
-  loginLink: {
+  signInLink: {
     color: '#FFF',
     fontWeight: 'bold',
     fontSize: 15,
   },
 });
 
-export default ResetPasswordScreen;
+export default SignUpScreen;
