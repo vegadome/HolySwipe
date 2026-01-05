@@ -92,8 +92,8 @@ const OnboardingScreen = () => {
         });
 
       if (error) {
-        console.error('Supabase save error:', error);
-        Alert.alert('Error', 'Failed to save preferences. Please try again.');
+        console.error('Supabase error:', error);
+        Alert.alert('Error', `Failed to save: ${error.message}`);
         return false;
       }
     } else {

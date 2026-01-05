@@ -73,16 +73,16 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
-          <Stack.Screen name="auth/index" />
-          <Stack.Screen name="auth/sign-in" />
-          <Stack.Screen name="auth/sign-up" />
-          <Stack.Screen name="auth/forgot-password" />
-          <Stack.Screen name="auth/reset-password" />
+          <Stack.Screen name="auth/index" />           
+          <Stack.Screen name="auth/sign-in" />         
+          <Stack.Screen name="auth/sign-up" />         
+          <Stack.Screen name="auth/forgot-password" />  
+          <Stack.Screen name="auth/reset-password" />  
           <Stack.Screen name="auth/expired-link" />
           <Stack.Screen name="auth/check-email" />
           <Stack.Screen name="onboarding" />
-          <Stack.Screen name="/home/index" />
-          <Stack.Screen name="profile" />
+          <Stack.Screen name="home/index" />
+          <Stack.Screen name="home/profile" />
           <Stack.Screen name="sale/[id]" />
           <Stack.Screen name="product/[id]" />
         </Stack>

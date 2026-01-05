@@ -46,7 +46,7 @@ export default function HomeScreen() {
             <TouchableOpacity style={styles.iconButton}>
               <Text style={{fontSize: 20}}>🔔</Text>
             </TouchableOpacity>
-             <TouchableOpacity onPress={() => router.push('/profile')}>
+             <TouchableOpacity onPress={() => router.push('/home/profile')}>
               <Image 
                 source={{ uri: 'https://avatar.iran.liara.run/public/60' }} 
                 style={styles.topAvatar} 

@@ -1,97 +1,110 @@
-// app/auth/check-email.tsx
-
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
-    Linking,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Linking,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
-interface CheckEmailProps {
-  email?: string;
-}
-
-const CheckEmailScreen: React.FC<CheckEmailProps> = ({}) => {
+const CheckEmailScreen = () => {
   const router = useRouter();
   const [sending, setSending] = useState(false);
-
-  // Récupère l'email depuis l'historique ou SecureStore (optionnel)
   const { email } = useLocalSearchParams<{ email: string }>();
 
   const handleResendEmail = async () => {
     setSending(true);
     try {
-      // Tu peux réutiliser la logique de SignUp ici si besoin
-      Alert.alert('Email renvoyé', 'Vérifiez à nouveau vos emails.');
+      // Simulation d'envoi
+      setTimeout(() => {
+        Alert.alert('Email renvoyé', 'Vérifiez à nouveau votre boîte de réception.');
+        setSending(false);
+      }, 1500);
     } catch (error) {
       Alert.alert('Erreur', 'Impossible de renvoyer l’email.');
-    } finally {
       setSending(false);
     }
   };
 
   const openMailApp = () => {
-    // Ouvre l'app mail par défaut
-    Linking.openURL('message://').catch(() => {
-      // Si échec, ouvre une URL générique
-      Linking.openURL('mailto:').catch(() => {});
-    });
+    // Tente d'ouvrir les apps mail courantes
+    if (Platform.OS === 'ios') {
+      Linking.openURL('message://').catch(() => {
+        Linking.openURL('mailto:');
+      });
+    } else {
+      Linking.openURL('mailto:');
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient colors={['#0f0f0f', '#000']} style={StyleSheet.absoluteFill} />
       
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Icône enveloppe avec effet Glass */}
         <View style={styles.iconContainer}>
-          <BlurView intensity={30} tint="light" style={styles.iconBlur}>
-            <Text style={styles.icon}>📧</Text>
+          <BlurView intensity={20} tint="light" style={styles.iconBlur}>
+            <View style={styles.iconInner}>
+               <Text style={styles.iconEmoji}>✉️</Text>
+            </View>
           </BlurView>
         </View>
 
-        <Text style={styles.title}>Vérifiez vos emails</Text>
-        
-        <Text style={styles.subtitle}>
-          Nous avons envoyé un lien de vérification à :
-        </Text>
-        
-        <Text style={styles.email}>{email}</Text>
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>VÉRIFIEZ VOS EMAILS</Text>
+          
+          <Text style={styles.subtitle}>
+            Nous avons envoyé un lien magique à :
+          </Text>
+          
+          <BlurView intensity={10} tint="light" style={styles.emailBadge}>
+            <Text style={styles.emailText}>{email || 'votre@email.com'}</Text>
+          </BlurView>
 
-        <Text style={styles.instruction}>
-          Cliquez sur le lien dans l’email pour activer votre compte.
-        </Text>
+          <Text style={styles.instruction}>
+            Cliquez sur le lien dans le message pour activer votre compte et commencer votre expérience.
+          </Text>
+        </View>
 
         <View style={styles.buttonGroup}>
+          <TouchableOpacity 
+            style={styles.primaryButton} 
+            onPress={openMailApp}
+          >
+            <Text style={styles.primaryButtonText}>OUVRIR MA BOÎTE MAIL</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity 
             style={[styles.secondaryButton, sending && styles.disabled]} 
             onPress={handleResendEmail}
             disabled={sending}
           >
             <Text style={styles.secondaryButtonText}>
-              {sending ? 'Envoi...' : 'Renvoyer l’email'}
+              {sending ? 'ENVOI EN COURS...' : 'RENVOYER L’EMAIL'}
             </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.primaryButton} onPress={openMailApp}>
-            <Text style={styles.primaryButtonText}>Ouvrir l’email</Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/auth')}>
-          <Text style={styles.backText}>← Retour à l’authentification</Text>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => router.replace('/auth')}
+        >
+          <Text style={styles.backText}>← Retour à la connexion</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 };
+
+// Import nécessaire pour la détection de l'OS
+import { Platform } from 'react-native';
 
 const styles = StyleSheet.create({
   container: {
@@ -102,96 +115,118 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 30,
     paddingTop: 80,
+    paddingBottom: 40,
     alignItems: 'center',
   },
   iconContainer: {
-    marginBottom: 40,
+    marginBottom: 50,
   },
   iconBlur: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(226, 241, 99, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    overflow: 'hidden',
   },
-  icon: {
+  iconInner: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(226, 241, 99, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconEmoji: {
     fontSize: 40,
-    color: '#E2F163',
+  },
+  textContainer: {
+    alignItems: 'center',
+    width: '100%',
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '900',
     color: '#FFF',
     textAlign: 'center',
-    marginBottom: 15,
+    letterSpacing: 1,
+    marginBottom: 20,
   },
   subtitle: {
     fontSize: 16,
     color: '#888',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 15,
   },
-  email: {
+  emailBadge: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: 25,
+    overflow: 'hidden',
+  },
+  emailText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#E2F163',
-    marginBottom: 20,
-    textAlign: 'center',
   },
   instruction: {
     fontSize: 15,
-    color: '#888',
+    color: '#666',
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 40,
-    paddingHorizontal: 20,
+    lineHeight: 24,
+    marginBottom: 50,
+    paddingHorizontal: 10,
   },
   buttonGroup: {
     width: '100%',
-    gap: 12,
-    marginBottom: 30,
+    gap: 15,
   },
   primaryButton: {
     backgroundColor: '#E2F163',
-    paddingVertical: 16,
-    borderRadius: 20,
+    paddingVertical: 20,
+    borderRadius: 22,
     alignItems: 'center',
     shadowColor: '#E2F163',
     shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowRadius: 15,
+    elevation: 8,
   },
   primaryButtonText: {
     color: '#000',
     fontWeight: '900',
-    fontSize: 16,
+    fontSize: 14,
     letterSpacing: 1,
   },
   secondaryButton: {
-    backgroundColor: 'rgba(226, 241, 99, 0.1)',
-    paddingVertical: 16,
-    borderRadius: 20,
+    backgroundColor: 'transparent',
+    paddingVertical: 18,
+    borderRadius: 22,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(226, 241, 99, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   secondaryButtonText: {
-    color: '#E2F163',
-    fontWeight: '600',
-    fontSize: 16,
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 14,
+    letterSpacing: 0.5,
   },
   disabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   backButton: {
+    marginTop: 40,
     padding: 10,
   },
   backText: {
-    color: '#888',
-    fontSize: 15,
+    color: '#444',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
