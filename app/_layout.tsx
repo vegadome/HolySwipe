@@ -83,6 +83,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" />
           <Stack.Screen name="home/index" />
           <Stack.Screen name="home/profile" />
+          <Stack.Screen name="home/edit-profile" />
           <Stack.Screen name="sale/[id]" />
           <Stack.Screen name="product/[id]" />
         </Stack>
