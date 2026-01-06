@@ -1,3 +1,4 @@
+import { useProfile } from '@/hooks/useProfile';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,12 +7,19 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { mockSales } from '../../data/mockSales';
 
+
 export default function HomeScreen() {
   const router = useRouter();
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const liveSales = mockSales.filter(s => s.isLive);
   const popularSales = mockSales.filter(s => !s.isLive).slice(0, 5);
+  const { avatarUrl } = useProfile();
+  const avatarUri = avatarUrl ? `${avatarUrl}?t=${Date.now()}`:'https://avatar.iran.liara.run/public/60';
+  // S'assurer que l'URI est bien une string
+  const safeAvatarUri = typeof avatarUri === 'string' ? avatarUri : 'https://avatar.iran.liara.run/public/60';
 
+
+    // Charger l'avatar au montage
 
   useEffect(() => {
     // Configuration de l'animation en boucle (infini)
@@ -44,12 +52,13 @@ export default function HomeScreen() {
           {/* CORRECTION ICI : Remplacement de div par View */}
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.iconButton}>
-              <Text style={{fontSize: 20}}>🔔</Text>
+              <Text style={{fontSize: 20}}>{'🔔'}</Text>
             </TouchableOpacity>
              <TouchableOpacity onPress={() => router.push('/home/profile')}>
-              <Image 
-                source={{ uri: 'https://avatar.iran.liara.run/public/60' }} 
-                style={styles.topAvatar} 
+              <Image
+                source={{ uri: safeAvatarUri }}
+                style={styles.topAvatar}
+                contentFit="cover"
               />
             </TouchableOpacity>
           </View>
