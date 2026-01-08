@@ -91,7 +91,7 @@ export default function HomeScreen() {
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.iconButton}>
-              <Text style={{ fontSize: 20 }}>{'🔔'}</Text>
+              <Text style={{ fontSize: 20 }}>🔔</Text> 
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push('/home/profile')}>
               <Image
@@ -104,27 +104,37 @@ export default function HomeScreen() {
         </View>
 
         {/* Stories Section */}
-        <Text style={styles.sectionLabel}>Your <Text style={styles.whiteText}>Sales</Text></Text>
+        <Text style={styles.sectionLabel}>
+          Your <Text style={styles.whiteText}>Sales</Text>
+        </Text>
+        
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.storiesContainer}>
-          {[...liveSales, ...popularSales].slice(0, 6).map((sale) => (
+          {([...liveSales, ...popularSales]).slice(0, 6).map((sale) => (
             <View key={sale.id} style={styles.storyCircleContainer}>
               <Image 
                 source={{ uri: getAvatar(sale) }} 
                 style={styles.storyCircle} 
               />
-              {sale.is_live && <View style={styles.onlineDot} />}
+              {!!sale.is_live && <View style={styles.onlineDot} />}
             </View>
           ))}
         </ScrollView>
 
         {/* Live Section */}
-        <Text style={styles.sectionLabel}>Sales on <Text style={styles.whiteText}>Live</Text></Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.liveHorizontalScroll}>
+        <Text style={styles.sectionLabel}>
+          Sales on <Text style={styles.whiteText}>Live</Text>
+        </Text>
+        
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          style={styles.liveHorizontalScroll}
+        >
           {liveSales.map((sale: PrivateSale) => (
             <TouchableOpacity 
               key={sale.id} 
               style={styles.liveCard} 
-              onPress={() => router.push(`/sale/${sale.vendor_id}`)} // 👈 vendor_id ici !
+              onPress={() => router.push(`/sale/${sale.vendor_id}`)}
             >
               <Image 
                 source={{ uri: sale.cover_image || 'https://via.placeholder.com/400x600' }} 
@@ -145,7 +155,7 @@ export default function HomeScreen() {
                   />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.hostText}>{sale.brand_name}</Text>
-                    <Text style={styles.followerText}>10k FOLLOWERS</Text> {/* À remplacer plus tard */}
+                    <Text style={styles.followerText}>10k FOLLOWERS</Text>
                   </View>
                   <TouchableOpacity style={styles.followBtn}>
                     <Text style={styles.followBtnText}>Follow</Text>
@@ -153,7 +163,7 @@ export default function HomeScreen() {
                 </BlurView>
 
                 <View>
-                  <Text style={styles.liveTitle}>{sale.brand_name.toUpperCase()}</Text>
+                  <Text style={styles.liveTitle}>{sale.brand_name?.toUpperCase()}</Text>
                   <View style={styles.statsRow}>
                     <Animated.View 
                       style={[
@@ -163,7 +173,7 @@ export default function HomeScreen() {
                     >
                       <Text style={styles.liveBadgeText}>LIVE</Text>
                     </Animated.View>
-                    <Text style={styles.viewerText}>• 12.5k</Text> {/* À dynamiser plus tard */}
+                    <Text style={styles.viewerText}>• 12.5k</Text>
                   </View>
                 </View>
               </View>
@@ -172,13 +182,16 @@ export default function HomeScreen() {
         </ScrollView>
 
         {/* Popular Section */}
-        <Text style={styles.sectionLabel}>Popular <Text style={styles.whiteText}>Sales</Text></Text>
+        <Text style={styles.sectionLabel}>
+          Popular <Text style={styles.whiteText}>Sales</Text>
+        </Text>
+        
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.popularScroll}>
-          {popularSales.map((sale: { id: React.Key | null | undefined; vendor_id: any; cover_image: any; start_date: string | number | Date; }) => (
+          {popularSales.map((sale) => (
             <TouchableOpacity 
               key={sale.id} 
               style={styles.popularCard}
-              onPress={() => router.push(`/sale/${sale.vendor_id}`)} // 👈 vendor_id ici aussi
+              onPress={() => router.push(`/sale/${sale.vendor_id}`)}
             >
               <Image 
                 source={{ uri: sale.cover_image || 'https://via.placeholder.com/400x600' }} 
@@ -202,7 +215,16 @@ export default function HomeScreen() {
           <TouchableOpacity><Text style={styles.navIcon}>☰</Text></TouchableOpacity>
           <View style={styles.navMainIcon}><Text style={styles.navIcon}>✨</Text></View>
           <TouchableOpacity><Text style={styles.navIcon}>🔍</Text></TouchableOpacity>
-          <TouchableOpacity><Text style={styles.navIcon}>🔔</Text></TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.navButton} 
+            onPress={() => router.push('/home/wishlist')}
+            activeOpacity={0.7}
+          >
+            <BlurView intensity={20} tint="light" style={styles.navIconBlur}>
+              <Text style={styles.navIcon}>♡</Text> 
+              <View style={styles.wishlistDot} />
+            </BlurView>
+          </TouchableOpacity>
         </BlurView>
       </View>
     </SafeAreaView>
@@ -282,8 +304,33 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)'
   },
-  navIcon: { color: 'white', fontSize: 20 },
+  navIcon: { color: 'white', fontSize: 22, fontWeight: '300' },
   navMainIcon: { width: 54, height: 54, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 27, justifyContent: 'center', alignItems: 'center' },
   navAvatar: { width: 38, height: 38, borderRadius: 19 },
+  navButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  navIconBlur: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  wishlistDot: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#E2F163', // Ton jaune néon
+    shadowColor: '#E2F163',
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+  },
   
 });
