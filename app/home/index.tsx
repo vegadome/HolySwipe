@@ -1,43 +1,83 @@
 import { useProfile } from '@/hooks/useProfile';
+import { supabase } from '@/lib/supabase';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { mockSales } from '../../data/mockSales';
 
+
+// 🔹 Interface pour les données de Supabase
+interface PrivateSale {
+  id: string;
+  vendor_id: string;
+  brand_name: string;
+  is_live: boolean;
+  cover_image: string;
+  start_date: string;
+  end_date: string;
+}
 
 export default function HomeScreen() {
   const router = useRouter();
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const liveSales = mockSales.filter(s => s.isLive);
-  const popularSales = mockSales.filter(s => !s.isLive).slice(0, 5);
   const { avatarUrl } = useProfile();
-  const avatarUri = avatarUrl ? `${avatarUrl}?t=${Date.now()}`:'https://avatar.iran.liara.run/public/60';
-  // S'assurer que l'URI est bien une string
+  const avatarUri = avatarUrl ? `${avatarUrl}?t=${Date.now()}` : 'https://avatar.iran.liara.run/public/60';
   const safeAvatarUri = typeof avatarUri === 'string' ? avatarUri : 'https://avatar.iran.liara.run/public/60';
 
-
-    // Charger l'avatar au montage
+  // ✅ États pour les ventes
+  const [liveSales, setLiveSales] = useState<PrivateSale[]>([]);
+  const [popularSales, setPopularSales] = useState<PrivateSale[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Configuration de l'animation en boucle (infini)
+    // ✅ Animation (inchangée)
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1, // Grandit de 10%
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1, // Revient à la taille normale
-          duration: 800,
-          useNativeDriver: true,
-        }),
+        Animated.timing(pulseAnim, { toValue: 1.1, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
       ])
     ).start();
+
+    // ✅ Charger les ventes depuis Supabase
+    const loadSales = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('private_sales')
+          .select('*');
+
+        if (error) throw error;
+
+        const live = data.filter((s: { is_live: any; }) => s.is_live);
+        const popular = data.filter((s: { is_live: any; }) => !s.is_live).slice(0, 5);
+
+        setLiveSales(live);
+        setPopularSales(popular);
+      } catch (error) {
+        console.error('Erreur chargement ventes:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSales();
   }, []);
+
+  // ✅ Gestion du loading
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <Text style={{ color: '#fff' }}>Chargement des ventes...</Text>
+      </View>
+    );
+  }
+
+  // ✅ Fonction utilitaire pour l'avatar par défaut
+  const getAvatar = (sale: PrivateSale) => {
+    // Tu pourras plus tard stocker `avatar_url` dans private_sales
+    return 'https://avatar.iran.liara.run/public/60';
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -49,12 +89,11 @@ export default function HomeScreen() {
             <View style={styles.logoPlaceholder} />
             <Text style={styles.headerText}>HolySwipe</Text>
           </View>
-          {/* CORRECTION ICI : Remplacement de div par View */}
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.iconButton}>
-              <Text style={{fontSize: 20}}>{'🔔'}</Text>
+              <Text style={{ fontSize: 20 }}>{'🔔'}</Text>
             </TouchableOpacity>
-             <TouchableOpacity onPress={() => router.push('/home/profile')}>
+            <TouchableOpacity onPress={() => router.push('/home/profile')}>
               <Image
                 source={{ uri: safeAvatarUri }}
                 style={styles.topAvatar}
@@ -67,10 +106,13 @@ export default function HomeScreen() {
         {/* Stories Section */}
         <Text style={styles.sectionLabel}>Your <Text style={styles.whiteText}>Sales</Text></Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.storiesContainer}>
-          {mockSales.slice(0, 6).map((sale) => (
+          {[...liveSales, ...popularSales].slice(0, 6).map((sale) => (
             <View key={sale.id} style={styles.storyCircleContainer}>
-              <Image source={{ uri: sale.avatar }} style={styles.storyCircle} />
-              <View style={styles.onlineDot} />
+              <Image 
+                source={{ uri: getAvatar(sale) }} 
+                style={styles.storyCircle} 
+              />
+              {sale.is_live && <View style={styles.onlineDot} />}
             </View>
           ))}
         </ScrollView>
@@ -78,13 +120,17 @@ export default function HomeScreen() {
         {/* Live Section */}
         <Text style={styles.sectionLabel}>Sales on <Text style={styles.whiteText}>Live</Text></Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.liveHorizontalScroll}>
-          {liveSales.map((sale) => (
+          {liveSales.map((sale: PrivateSale) => (
             <TouchableOpacity 
               key={sale.id} 
               style={styles.liveCard} 
-              onPress={() => router.push(`/sale/${sale.id}`)}
+              onPress={() => router.push(`/sale/${sale.vendor_id}`)} // 👈 vendor_id ici !
             >
-              <Image source={{ uri: sale.cover }} style={styles.liveCover} contentFit="cover" />
+              <Image 
+                source={{ uri: sale.cover_image || 'https://via.placeholder.com/400x600' }} 
+                style={styles.liveCover} 
+                contentFit="cover" 
+              />
               
               <LinearGradient
                 colors={['transparent', 'rgba(0,0,0,0.8)']}
@@ -93,10 +139,13 @@ export default function HomeScreen() {
 
               <View style={styles.cardOverlay}>
                 <BlurView intensity={25} tint="light" style={styles.hostGlass}>
-                  <Image source={{ uri: sale.avatar }} style={styles.miniAvatar} />
+                  <Image 
+                    source={{ uri: getAvatar(sale) }} 
+                    style={styles.miniAvatar} 
+                  />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.hostText}>{sale.host}</Text>
-                    <Text style={styles.followerText}>{sale.followers} FOLLOWERS</Text>
+                    <Text style={styles.hostText}>{sale.brand_name}</Text>
+                    <Text style={styles.followerText}>10k FOLLOWERS</Text> {/* À remplacer plus tard */}
                   </View>
                   <TouchableOpacity style={styles.followBtn}>
                     <Text style={styles.followBtnText}>Follow</Text>
@@ -104,17 +153,17 @@ export default function HomeScreen() {
                 </BlurView>
 
                 <View>
-                  <Text style={styles.liveTitle}>{sale.title.toUpperCase()}</Text>
+                  <Text style={styles.liveTitle}>{sale.brand_name.toUpperCase()}</Text>
                   <View style={styles.statsRow}>
                     <Animated.View 
                       style={[
                         styles.liveBadge, 
-                        { transform: [{ scale: pulseAnim }] } // Application de l'effet d'échelle
+                        { transform: [{ scale: pulseAnim }] }
                       ]}
                     >
                       <Text style={styles.liveBadgeText}>LIVE</Text>
                     </Animated.View>
-                    <Text style={styles.viewerText}>• {sale.viewers}k</Text>
+                    <Text style={styles.viewerText}>• 12.5k</Text> {/* À dynamiser plus tard */}
                   </View>
                 </View>
               </View>
@@ -125,10 +174,21 @@ export default function HomeScreen() {
         {/* Popular Section */}
         <Text style={styles.sectionLabel}>Popular <Text style={styles.whiteText}>Sales</Text></Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.popularScroll}>
-          {popularSales.map((sale) => (
-            <TouchableOpacity key={sale.id} style={styles.popularCard}>
-              <Image source={{ uri: sale.cover }} style={styles.popularCover} />
-              <View style={styles.dateBadge}><Text style={styles.dateText}>{sale.date}</Text></View>
+          {popularSales.map((sale: { id: React.Key | null | undefined; vendor_id: any; cover_image: any; start_date: string | number | Date; }) => (
+            <TouchableOpacity 
+              key={sale.id} 
+              style={styles.popularCard}
+              onPress={() => router.push(`/sale/${sale.vendor_id}`)} // 👈 vendor_id ici aussi
+            >
+              <Image 
+                source={{ uri: sale.cover_image || 'https://via.placeholder.com/400x600' }} 
+                style={styles.popularCover} 
+              />
+              <View style={styles.dateBadge}>
+                <Text style={styles.dateText}>
+                  {new Date(sale.start_date).toLocaleDateString('fr-FR')}
+                </Text>
+              </View>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -148,6 +208,7 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
+
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#000' },
   container: { flex: 1, paddingHorizontal: 20 },

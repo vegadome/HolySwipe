@@ -1,23 +1,30 @@
+import { useSaleorProduct } from '@/hooks/useSaleorProductDetail';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { Alert, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { mockProducts } from '../../data/mockProducts';
-import { Product } from '../../types';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const ProductDetail = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const product: Product | undefined = mockProducts.find((p) => p.id === id);
+  const { loading, error, product } = useSaleorProduct(id!);
   const router = useRouter();
 
-  if (!product) {
+   if (loading) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: '#fff' }}>Product not found</Text>
+        <Text style={{ color: '#fff' }}>Chargement...</Text>
+      </View>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <View style={styles.center}>
+        <Text style={{ color: '#fff' }}>Produit non trouvé</Text>
       </View>
     );
   }

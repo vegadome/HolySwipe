@@ -1,37 +1,43 @@
+// app/sale/[id].tsx
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState } from 'react';
 import { Alert, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { SwipeableProductCard } from '../../components/SwipeableProductCard';
-import { mockProducts } from '../../data/mockProducts';
+import { useProductsByVendor } from '../../hooks/useProductsByVendor'; // ✅ Hook externalisé
 import { Product } from '../../types';
-import { getPersonalizedFeed } from '../../utils/personalization';
 
 export default function SaleDetail() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: vendor_id } = useLocalSearchParams<{ id: string }>();
   const [products, setProducts] = useState<Product[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedIds, setLikedIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  // ✅ Charger les produits de la marque via hook
+  const { products: vendorProducts, loading: loadingProducts } = useProductsByVendor(vendor_id!);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const prefsStr = await SecureStore.getItemAsync('user_preferences');
-        const prefs = prefsStr ? JSON.parse(prefsStr) : { styles: [], colors: [], brands: [], size: '' };
         const likedStr = await SecureStore.getItemAsync('liked_ids');
         const liked: string[] = likedStr ? JSON.parse(likedStr) : [];
         setLikedIds(liked);
-
-        const feed = getPersonalizedFeed(prefs, liked);
-        setProducts(feed.length > 0 ? feed : mockProducts);
+        
+        // ✅ Vente privée = tous les produits non likés de la marque
+        setProducts(vendorProducts.filter(p => !liked.includes(p.id)));
       } catch (error) {
-        setProducts(mockProducts);
+        console.error('Erreur:', error);
+        setProducts(vendorProducts);
+      } finally {
+        setLoading(false);
       }
     };
-    loadData();
-  }, []);
+
+    if (!loadingProducts) loadData();
+  }, [vendorProducts, loadingProducts]);
 
   const handleSwipe = async (direction: 'left' | 'right') => {
     const currentProduct = products[currentIndex];
@@ -44,18 +50,26 @@ export default function SaleDetail() {
     }
 
     if (currentIndex < products.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
+      setCurrentIndex(prev => prev + 1);
     } else {
       Alert.alert('Vente terminée', 'Vous avez vu tous les articles de cette sélection.');
     }
   };
 
-  const currentProduct = products[currentIndex];
-
-  if (!currentProduct) {
+  // ✅ Gestion du loading
+  if (loading || loadingProducts) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: '#fff' }}>Chargement...</Text>
+        <Text style={{ color: '#fff' }}>Chargement de la vente...</Text>
+      </View>
+    );
+  }
+
+  const currentProduct = products[currentIndex];
+  if (!currentProduct || products.length === 0) {
+    return (
+      <View style={styles.center}>
+        <Text style={{ color: '#fff' }}>Aucun article disponible pour cette marque.</Text>
       </View>
     );
   }
@@ -88,10 +102,7 @@ export default function SaleDetail() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
+  container: { flex: 1, backgroundColor: '#000' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -99,39 +110,11 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     position: 'relative',
   },
-  backButton: {
-    position: 'absolute',
-    left: 20,
-  },
-  backText: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  headerTitle: {
-    color: '#E2F163', // Ton jaune acide pour le titre de la vente
-    fontSize: 14,
-    fontWeight: '900',
-    letterSpacing: 2,
-  },
-  cardWrapper: {
-    flex: 1,
-    justifyContent: 'center', // ✅ Centre la carte parfaitement au milieu verticalement
-    alignItems: 'center',
-  },
-  footer: {
-    paddingBottom: 20,
-  },
-  counter: {
-    textAlign: 'center',
-    color: '#444',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000',
-  },
+  backButton: { position: 'absolute', left: 20 },
+  backText: { color: '#FFF', fontSize: 10, fontWeight: 'bold' },
+  headerTitle: { color: '#E2F163', fontSize: 14, fontWeight: '900', letterSpacing: 2 },
+  cardWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  footer: { paddingBottom: 20 },
+  counter: { textAlign: 'center', color: '#444', fontSize: 11, fontWeight: 'bold' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
 });
