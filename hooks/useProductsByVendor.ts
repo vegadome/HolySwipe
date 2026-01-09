@@ -2,31 +2,33 @@
 import { Product } from "@/types";
 import { useEffect, useState } from "react";
 
-export const useProductsByVendor = (vendorId: string) => {
+export const useProductsByVendor = (vendor: string) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
-      if (!vendorId) {
+      if (!vendor) {
+        setProducts([]);
         setLoading(false);
         return;
       }
 
       try {
+        setLoading(true);
+
         const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
-        
+
         if (!SUPABASE_URL) {
-          throw new Error('EXPO_PUBLIC_SUPABASE_URL non défini dans .env');
+          throw new Error("EXPO_PUBLIC_SUPABASE_URL non défini dans .env");
         }
 
-        // 🔑 PLUS D'AUTHORIZATION HEADER → fonction publique
+        // ✅ PARAM = vendor (slug Saleor)
         const response = await fetch(
-          `${SUPABASE_URL}/functions/v1/get-vendor-products?vendor_id=${vendorId}`,
+          `${SUPABASE_URL}/functions/v1/get-vendor-products?vendor=${encodeURIComponent(vendor)}`,
           {
-            method: 'GET',
-            // ⚠️ Aucun header d'authentification → la fonction doit être publique
+            method: "GET",
           }
         );
 
@@ -36,11 +38,13 @@ export const useProductsByVendor = (vendorId: string) => {
         }
 
         const data: Product[] = await response.json();
+        console.log("✅ Produits reçus:", data);
+
         setProducts(data);
         setError(null);
       } catch (err: any) {
-        console.error('Erreur chargement produits marque:', err);
-        setError(err.message || 'Impossible de charger les produits');
+        console.error("❌ Erreur chargement produits vendeur:", err);
+        setError(err.message || "Impossible de charger les produits");
         setProducts([]);
       } finally {
         setLoading(false);
@@ -48,7 +52,7 @@ export const useProductsByVendor = (vendorId: string) => {
     };
 
     fetchProducts();
-  }, [vendorId]);
+  }, [vendor]);
 
   return { products, loading, error };
 };

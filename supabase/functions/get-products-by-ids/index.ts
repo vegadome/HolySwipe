@@ -118,6 +118,7 @@ serve(async (req) => {
     }
 
     // 🔄 Mapper les données
+    // 🔄 Mapper les données
     const products: Product[] = data.products.edges.map((edge: any) => {
       const node = edge.node;
       let brand = 'Marque';
@@ -126,13 +127,13 @@ serve(async (req) => {
 
       node.attributes.forEach((attr: any) => {
         if (attr.attribute.slug === 'brand-name' && attr.values[0]) {
-          brand = attr.values[0].name;
+          brand = attr.values[0].name; // ✅ Textbox → .name
         }
         if (attr.attribute.slug === 'eco-friendly' && attr.values[0]) {
-          ecoFriendly = attr.values[0].slug === 'yes';
+          ecoFriendly = attr.values[0].slug === 'yes'; // ✅ Dropdown → .slug OK
         }
         if (attr.attribute.slug === 'vendor-id' && attr.values[0]) {
-          vendorId = attr.values[0].slug;
+          vendorId = attr.values[0].name; // ✅ Textbox → .name (CORRIGÉ)
         }
       });
 

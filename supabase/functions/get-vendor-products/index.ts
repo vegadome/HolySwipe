@@ -1,127 +1,124 @@
-// supabase/functions/get-vendor-products/index.ts
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 
-const SALEOR_API_URL = Deno.env.get('SALEOR_API_URL');
+const SALEOR_API_URL = 'https://holyswipe.eu.saleor.cloud/graphql/';
 const CHANNEL = 'holy-swipe';
 
-// 🛑 Vérification critique
-if (!SALEOR_API_URL) {
-  throw new Error('SALEOR_API_URL non défini dans les secrets');
-}
+serve(async (req: { url: string | URL }) => {
+  const url = new URL(req.url);
+  const vendorSlug = url.searchParams.get('vendor'); // ex: holystyle
 
-const GET_PRODUCTS_BY_VENDOR = `
-  query GetProductsByVendor($channel: String!, $vendorSlug: String!) {
-    products(
-      first: 50,
-      channel: $channel,
-      filter: { attributes: [{ slug: "vendor-id", values: [$vendorSlug]}] }
-    ) {
-      edges {
-        node {
-          id
-          name
-          description
-          thumbnail(size: 400) {
-            url
+  if (!vendorSlug) {
+    return new Response(
+      JSON.stringify({ error: 'vendor requis' }),
+      { status: 400 }
+    );
+  }
+
+  try {
+    const query = `
+      query GetProductsByVendor($channel: String!, $vendor: [String!]) {
+        products(
+          first: 50
+          channel: $channel
+          filter: {
+            attributes: [
+              { slug: "vendor", values: $vendor }
+            ]
           }
-          pricing {
-            priceRange {
-              start {
-                gross {
-                  amount
-                  currency
+        ) {
+          edges {
+            node {
+              id
+              name
+              thumbnail(size: 400) {
+                url
+              }
+              pricing {
+                priceRange {
+                  start {
+                    gross {
+                      amount
+                      currency
+                    }
+                  }
                 }
+              }
+              attributes {
+                attribute { slug }
+                values { name slug }
               }
             }
           }
-          attributes {
-            attribute { slug }
-            values { name slug }
-          }
         }
       }
-    }
-  }
-`;
+    `;
 
-interface Product {
-  id: string;
-  name: string;
-  image: string;
-  price: number;
-  currency: string;
-  brand: string;
-  ecoFriendly: boolean;
-  vendorId: string;
-  size: string[];
-}
-
-serve(async (req: { url: string | URL; }) => {
-  try {
-    // 🔑 Récupérer vendor_id depuis les query params (méthode Supabase)
-    const { vendor_id } = Object.fromEntries(new URL(req.url, 'https://dummy').searchParams);
-    
-    if (!vendor_id) {
-      return new Response(
-        JSON.stringify({ error: 'Paramètre "vendor_id" requis' }),
-        { status: 400 }
-      );
-    }
-
-    // 📤 Appel à Saleor
-    const saleorResponse = await fetch(SALEOR_API_URL, {
+    const response = await fetch(SALEOR_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        query: GET_PRODUCTS_BY_VENDOR,
-        variables: { channel: CHANNEL, vendorSlug: vendor_id }
+        query,
+        variables: {
+          channel: CHANNEL,
+          vendor: [vendorSlug],
+        },
       }),
     });
 
-    const { data, errors } = await saleorResponse.json();
+    const result = await response.json();
+    console.log('📥 Réponse Saleor brute:', JSON.stringify(result, null, 2));
 
-    if (errors) {
-      console.error('Erreur Saleor:', errors);
+    if (result.errors) {
+      console.error('❌ Erreurs Saleor:', result.errors);
       return new Response(
-        JSON.stringify({ error: 'Erreur produits' }),
+        JSON.stringify({ error: 'Erreur Saleor' }),
         { status: 500 }
       );
     }
 
-    // 🔄 Mapper les données
-    const products: Product[] = data.products.edges.map((edge: any) => {
-      const node = edge.node;
-      let brand = vendor_id;
-      let ecoFriendly = false;
+    const edges = result.data?.products?.edges ?? [];
 
-      node.attributes.forEach((attr: any) => {
-        if (attr.attribute.slug === 'brand-name' && attr.values[0]) {
-          brand = attr.values[0].name;
+    const products = edges.map((edge: any) => {
+      const node = edge.node;
+
+      let brand = '';
+      let ecoFriendly = false;
+      let vendorName = '';
+
+      node.attributes?.forEach((attr: any) => {
+        if (attr.attribute.slug === 'brand-name') {
+          brand = attr.values?.[0]?.name ?? '';
         }
-        if (attr.attribute.slug === 'eco-friendly' && attr.values[0]) {
-          ecoFriendly = attr.values[0].slug === 'yes';
+        if (attr.attribute.slug === 'eco-friendly') {
+          ecoFriendly = attr.values?.[0]?.slug === 'yes';
+        }
+        if (attr.attribute.slug === 'vendor') {
+          vendorName = attr.values?.[0]?.name ?? '';
         }
       });
 
       return {
         id: node.id,
         name: node.name,
-        image: node.thumbnail?.url || '',
-        price: node.pricing?.priceRange?.start?.gross?.amount || 0,
-        currency: node.pricing?.priceRange?.start?.gross?.currency || 'EUR',
+        image: node.thumbnail?.url ?? '',
+        price: node.pricing?.priceRange?.start?.gross?.amount ?? 0,
+        currency: node.pricing?.priceRange?.start?.gross?.currency ?? 'EUR',
         brand,
         ecoFriendly,
-        vendorId: vendor_id,
-        size: ['S', 'M', 'L'],
+        vendor: {
+          slug: vendorSlug,
+          name: vendorName,
+        },
       };
     });
+
+    console.log('📤 Produits envoyés:', products);
 
     return new Response(JSON.stringify(products), {
       headers: { 'Content-Type': 'application/json' },
     });
-
-  } catch (error) {
-    console.error('Erreur Edge Function:', error);
+  } catch (err) {
+    console.error('💥 Erreur Edge Function:', err);
     return new Response(
       JSON.stringify({ error: 'Erreur serveur' }),
       { status: 500 }
