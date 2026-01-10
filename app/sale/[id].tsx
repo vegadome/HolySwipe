@@ -1,54 +1,54 @@
 // app/sale/[id].tsx
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState } from 'react';
 import { Alert, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { useWishlist } from '@/contexts/WishlistContext';
+import * as Haptics from 'expo-haptics';
+import { Platform, ToastAndroid } from 'react-native';
 import { SwipeableProductCard } from '../../components/SwipeableProductCard';
-import { useProductsByVendor } from '../../hooks/useProductsByVendor'; // ✅ Hook externalisé
+import { useProductsByVendor } from '../../hooks/useProductsByVendor';
 import { Product } from '../../types';
 
 export default function SaleDetail() {
   const { id: vendor_id } = useLocalSearchParams<{ id: string }>();
   const [products, setProducts] = useState<Product[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [likedIds, setLikedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // ✅ Charger les produits de la marque via hook
   const { products: vendorProducts, loading: loadingProducts } = useProductsByVendor(vendor_id!);
+  const { likedIds, like } = useWishlist(); // ✅ État global réactif
 
+  // Filtrer les produits non likés dès que vendorProducts ou likedIds change
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const likedStr = await SecureStore.getItemAsync('liked_ids');
-        const liked: string[] = likedStr ? JSON.parse(likedStr) : [];
-        setLikedIds(liked);
-        
-        // ✅ Vente privée = tous les produits non likés de la marque
-        setProducts(vendorProducts.filter(p => !liked.includes(p.id)));
-      } catch (error) {
-        console.error('Erreur:', error);
-        setProducts(vendorProducts);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (!loadingProducts) loadData();
-  }, [vendorProducts, loadingProducts]);
+    if (!loadingProducts) {
+      const filtered = vendorProducts.filter(p => !likedIds.has(p.id));
+      setProducts(filtered);
+      setLoading(false);
+    }
+  }, [vendorProducts, loadingProducts, likedIds]); // ← Ajout de likedIds comme dépendance
 
   const handleSwipe = async (direction: 'left' | 'right') => {
     const currentProduct = products[currentIndex];
     if (!currentProduct) return;
 
     if (direction === 'right') {
-      const newLiked = [...likedIds, currentProduct.id];
-      setLikedIds(newLiked);
-      await SecureStore.setItemAsync('liked_ids', JSON.stringify(newLiked));
+      // 🔊 Feedback haptique
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      // 💬 Notification
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('✅ Ajouté à ta Wishlist', ToastAndroid.SHORT);
+      } else {
+        Alert.alert('Wishlist', 'Article ajouté ✅', [{ text: 'OK' }]);
+      }
+
+      // ❤️ Ajout via le contexte (persistance + mise à jour globale)
+      await like(currentProduct.id);
     }
 
+    // Passer au produit suivant
     if (currentIndex < products.length - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {

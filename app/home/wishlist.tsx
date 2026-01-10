@@ -3,7 +3,6 @@ import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Alert,
@@ -14,17 +13,58 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
-import { useWishlistProducts } from '../../hooks/useWishlistProducts';
-import { supabase } from '../../lib/supabase';
+import { useWishlist } from '../../contexts/WishlistContext'; // ✅ Nouveau hook global
+
+// Fonction utilitaire pour charger les détails produits depuis les IDs
+const fetchProductDetails = async (productIds: string[]): Promise<any[]> => {
+  if (productIds.length === 0) return [];
+  
+  const response = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/get-products-by-ids`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids: productIds }),
+  });
+
+  if (!response.ok) throw new Error('Failed to load wishlist products');
+  return await response.json();
+};
 
 export default function WishlistScreen() {
   const router = useRouter();
   const masterAnim = useRef(new Animated.Value(0)).current;
-  const { products, loading, error } = useWishlistProducts();
+  const { likedIds, unlike } = useWishlist(); // ✅ État global réactif
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  // Charger les détails produits dès que likedIds change
+  useEffect(() => {
+    const loadProducts = async () => {
+      if (likedIds.size === 0) {
+        setProducts([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const productArray = await fetchProductDetails(Array.from(likedIds));
+        setProducts(productArray);
+      } catch (err: any) {
+        console.error('Erreur chargement wishlist:', err);
+        setError(err.message || 'Impossible de charger les articles');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, [likedIds]); // ✅ Réagit automatiquement aux likes/délikes
+
+  // Animation d'entrée
   useEffect(() => {
     Animated.timing(masterAnim, {
       toValue: 1,
@@ -46,29 +86,14 @@ export default function WishlistScreen() {
 
   const removeFromWishlist = async (id: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        await supabase
-          .from('likes')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('product_id', id);
-      } else {
-        const likedStr = await SecureStore.getItemAsync('liked_ids');
-        const liked: string[] = likedStr ? JSON.parse(likedStr) : [];
-        const newLiked = liked.filter(productId => productId !== id);
-        await SecureStore.setItemAsync('liked_ids', JSON.stringify(newLiked));
-      }
-
-      // Mettre à jour l'UI
+      await unlike(id); // ✅ Supprime via le contexte (gère Supabase + SecureStore)
       setSelectedIds(prev => {
         const newSet = new Set(prev);
         newSet.delete(id);
         return newSet;
       });
-    } catch (error) {
-      console.error('Erreur suppression:', error);
+    } catch (err) {
+      console.error('Erreur suppression:', err);
       Alert.alert('Erreur', 'Impossible de supprimer l’article');
     }
   };
@@ -79,11 +104,10 @@ export default function WishlistScreen() {
       return;
     }
     
-    // 🔜 Passer à l'étape panier avec les IDs sélectionnés
     const ids = Array.from(selectedIds);
     router.push({
       pathname: '/home/cart',
-      params: { productIds: JSON.stringify(ids) }
+      params: { productIds: JSON.stringify(ids) },
     });
   };
 
@@ -103,18 +127,16 @@ export default function WishlistScreen() {
           <BlurView intensity={15} tint="light" style={styles.glassCard}>
             <Image source={{ uri: item.image }} style={styles.itemImage} contentFit="cover" />
             
-            {/* Badge de sélection */}
             {isSelected && (
               <View style={styles.selectedBadge}>
                 <Text style={styles.selectedIcon}>✓</Text>
               </View>
             )}
             
-            {/* Bouton suppression */}
             <TouchableOpacity 
               style={styles.deleteButton}
               onPress={(e) => {
-                e.stopPropagation(); // Empêche la sélection
+                e.stopPropagation();
                 removeFromWishlist(item.id);
               }}
             >
@@ -136,7 +158,6 @@ export default function WishlistScreen() {
     <SafeAreaView style={styles.container}>
       <LinearGradient colors={['#0f0f0f', '#000']} style={StyleSheet.absoluteFill} />
       
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <BlurView intensity={20} tint="light" style={styles.backBlur}>
@@ -189,6 +210,7 @@ export default function WishlistScreen() {
   );
 }
 
+// 👇 Styles inchangés (tu peux garder les tiens tels quels)
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   header: {
@@ -237,7 +259,7 @@ const styles = StyleSheet.create({
   selectedBadge: {
     position: 'absolute',
     top: 15,
-    right: 45, // à gauche du bouton suppression
+    right: 45,
     width: 30,
     height: 30,
     borderRadius: 15,

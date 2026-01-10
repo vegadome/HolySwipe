@@ -2,7 +2,7 @@
 /**
  * npx supabase functions deploy get-products-by-ids
 */
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 
 // ⚙️ Configuration
 const SALEOR_API_URL = Deno.env.get('SALEOR_API_URL')!;
@@ -58,7 +58,7 @@ const GET_PRODUCTS_BY_IDS = `
   }
 `;
 
-serve(async (req) => {
+serve(async (req: { method: string; json: () => any; url: string | URL; }) => {
   // 🔍 Récupérer les IDs depuis le body (POST) ou query params (GET)
   let productIds: string[] = [];
   

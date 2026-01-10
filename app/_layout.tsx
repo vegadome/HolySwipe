@@ -6,6 +6,8 @@ import { useEffect } from 'react';
 import { Linking } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { WishlistProvider } from '../contexts/WishlistContext';
+
 
 // 🔁 Handler de deep linking pour les emails Supabase
 const handleDeepLink = async (url: string) => {
@@ -71,23 +73,25 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="auth/index" />           
-          <Stack.Screen name="auth/sign-in" />         
-          <Stack.Screen name="auth/sign-up" />         
-          <Stack.Screen name="auth/forgot-password" />  
-          <Stack.Screen name="auth/reset-password" />  
-          <Stack.Screen name="auth/expired-link" />
-          <Stack.Screen name="auth/check-email" />
-          <Stack.Screen name="onboarding" />
-          <Stack.Screen name="home/index" />
-          <Stack.Screen name="home/profile" />
-          <Stack.Screen name="home/edit-profile" />
-          <Stack.Screen name="home/wishlist" />
-          <Stack.Screen name="sale/[id]" />
-          <Stack.Screen name="product/[id]" />
-        </Stack>
+        <WishlistProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="auth/index" />           
+            <Stack.Screen name="auth/sign-in" />         
+            <Stack.Screen name="auth/sign-up" />         
+            <Stack.Screen name="auth/forgot-password" />  
+            <Stack.Screen name="auth/reset-password" />  
+            <Stack.Screen name="auth/expired-link" />
+            <Stack.Screen name="auth/check-email" />
+            <Stack.Screen name="onboarding" />
+            <Stack.Screen name="home/index" />
+            <Stack.Screen name="home/profile" />
+            <Stack.Screen name="home/edit-profile" />
+            <Stack.Screen name="home/wishlist" />
+            <Stack.Screen name="sale/[id]" />
+            <Stack.Screen name="product/[id]" />
+          </Stack>
+        </WishlistProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

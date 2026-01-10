@@ -1,3 +1,4 @@
+
 graph LR
   A[Expo App] -->|1. Afficher vente Zara| B(Supabase)
   B -->|“zara est en live”| A
@@ -8,7 +9,6 @@ graph LR
   C -->|Checkout + Stripe| A
   C -->|Webhook → commande créée| D[Custom App]
   D -->|Notifier Zara| E[Marque]
-
 
 
 Absolument ! Voici un **état des lieux complet** de ton projet **HolySwipe**, avec :
