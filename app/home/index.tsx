@@ -89,16 +89,39 @@ export default function HomeScreen() {
             <View style={styles.logoPlaceholder} />
             <Text style={styles.headerText}>HolySwipe</Text>
           </View>
+
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.iconButton}>
-              <Text style={{ fontSize: 20 }}>🔔</Text> 
+            {/* WISHLIST (Cœur) */}
+            <TouchableOpacity 
+              style={styles.iconButton} 
+              onPress={() => router.push('/home/wishlist')}
+            >
+              <BlurView intensity={15} tint="light" style={styles.iconBlur}>
+                <Text style={styles.navIconText}>♡</Text>
+              </BlurView>
             </TouchableOpacity>
+
+            {/* CART (Panier) */}
+            <TouchableOpacity 
+              style={styles.iconButton} 
+              onPress={() => router.push('/home/cart')}
+            >
+              <BlurView intensity={15} tint="light" style={styles.iconBlur}>
+                <Text style={styles.navIconText}>🛒</Text>
+                {/* Badge optionnel pour le nombre d'articles */}
+                <View style={styles.cartBadge} />
+              </BlurView>
+            </TouchableOpacity>
+
+            {/* PROFILE AVATAR */}
             <TouchableOpacity onPress={() => router.push('/home/profile')}>
-              <Image
-                source={{ uri: safeAvatarUri }}
-                style={styles.topAvatar}
-                contentFit="cover"
-              />
+              <View style={styles.avatarBorder}>
+                <Image
+                  source={{ uri: safeAvatarUri }}
+                  style={styles.topAvatar}
+                  contentFit="cover"
+                />
+              </View>
             </TouchableOpacity>
           </View>
         </View>
@@ -232,24 +255,83 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Fond et structure
   safeArea: { flex: 1, backgroundColor: '#000' },
   container: { flex: 1, paddingHorizontal: 20 },
   whiteText: { color: '#FFF' },
   
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, marginBottom: 20 },
+  // Header mis à jour (HolySwipe + Wishlist + Cart + Profile)
+  header: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginTop: 15, 
+    marginBottom: 20 
+  },
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  logoPlaceholder: { width: 30, height: 30, backgroundColor: '#FFD700', borderRadius: 8, marginRight: 10, transform: [{ rotate: '45deg' }] },
-  headerText: { color: '#FFF', fontSize: 22, fontWeight: 'bold' },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 15 },
-  topAvatar: { width: 40, height: 40, borderRadius: 12 },
+  logoPlaceholder: { 
+    width: 28, 
+    height: 28, 
+    backgroundColor: '#E2F163', // Jaune néon HolySwipe
+    borderRadius: 8, 
+    marginRight: 10, 
+    transform: [{ rotate: '15deg' }] 
+  },
+  headerText: { color: '#FFF', fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
   
-  sectionLabel: { color: '#888', fontSize: 16, marginBottom: 15, marginTop: 15 },
+  headerRight: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 12 // Espacement harmonieux entre les icônes
+  },
   
+  // Nouveaux styles pour les boutons du Header (Wishlist / Cart)
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  iconBlur: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  navIconText: { fontSize: 18, color: '#FFF' }, // Pour les icônes texte/emoji du header
+  
+  // Badge de notification pour le panier
+  cartBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#E2F163',
+    shadowColor: '#E2F163',
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+  },
+
+  // Avatar du Header
+  avatarBorder: {
+    padding: 2,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  topAvatar: { width: 36, height: 36, borderRadius: 12 },
+
+  // Stories
+  sectionLabel: { color: '#444', fontSize: 13, fontWeight: '900', letterSpacing: 1, marginBottom: 15, marginTop: 15 },
   storiesContainer: { marginBottom: 25 },
   storyCircleContainer: { marginRight: 15, position: 'relative' },
   storyCircle: { width: 65, height: 65, borderRadius: 22, borderWidth: 1, borderColor: '#333' },
   onlineDot: { position: 'absolute', bottom: 2, right: 2, width: 14, height: 14, backgroundColor: '#4CAF50', borderRadius: 7, borderWidth: 3, borderColor: '#000' },
 
+  // Cards Live (Motion Design Style)
   liveHorizontalScroll: { overflow: 'visible' },
   liveCard: { width: 280, height: 400, borderRadius: 35, marginRight: 20, overflow: 'hidden', position: 'relative' },
   liveCover: { width: '100%', height: '100%' },
@@ -278,9 +360,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
-    // Ajout d'une légère ombre pour le faire ressortir pendant l'animation
     shadowColor: '#FF4500',
-    shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 6,
     elevation: 5, 
@@ -288,11 +368,13 @@ const styles = StyleSheet.create({
   liveBadgeText: { color: '#FFF', fontSize: 11, fontWeight: 'bold' },
   viewerText: { color: '#FFF', fontSize: 13, fontWeight: '600' },
 
+  // Popular Section
   popularCard: { width: 180, height: 240, borderRadius: 25, marginRight: 15, overflow: 'hidden' },
   popularCover: { width: '100%', height: '100%' },
   dateBadge: { position: 'absolute', top: 12, left: 12, backgroundColor: '#007AFF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
   dateText: { color: '#FFF', fontSize: 10, fontWeight: 'bold' },
 
+  // Bottom Navigation (Glassmorphism)
   bottomNavContainer: { position: 'absolute', bottom: 35, left: 20, right: 20, height: 75 },
   bottomNav: { 
     flex: 1, 
@@ -304,22 +386,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)'
   },
+  navButton: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden' },
+  navIconBlur: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   navIcon: { color: 'white', fontSize: 22, fontWeight: '300' },
   navMainIcon: { width: 54, height: 54, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 27, justifyContent: 'center', alignItems: 'center' },
   navAvatar: { width: 38, height: 38, borderRadius: 19 },
-  navButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    overflow: 'hidden',
-  },
-  navIconBlur: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
   wishlistDot: {
     position: 'absolute',
     top: 12,
@@ -327,10 +398,9 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#E2F163', // Ton jaune néon
+    backgroundColor: '#E2F163',
     shadowColor: '#E2F163',
     shadowOpacity: 0.8,
     shadowRadius: 4,
   },
-  
 });

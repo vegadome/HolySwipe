@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 
-const SALEOR_API_URL = 'https://holyswipe.eu.saleor.cloud/graphql/';
+//const SALEOR_API_URL = 'https://holyswipe.eu.saleor.cloud/graphql/';
+const SALEOR_API_URL = Deno.env.get('SALEOR_API_URL')!;
 const CHANNEL = 'holy-swipe';
 
 serve(async (req: { url: string | URL }) => {
